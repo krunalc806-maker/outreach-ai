@@ -141,8 +141,7 @@ export const SEEDED_DEMO_CASES: AgentCase[] = [
   },
 ];
 
-// Module-level in-memory store for server / Node execution
-let serverMemoryStore: AgentCase[] = [...SEEDED_DEMO_CASES];
+let serverMemoryStore: AgentCase[] = [];
 
 export function getStoredCases(): AgentCase[] {
   if (typeof window === "undefined") {
@@ -150,14 +149,15 @@ export function getStoredCases(): AgentCase[] {
   }
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(SEEDED_DEMO_CASES));
-      return SEEDED_DEMO_CASES;
-    }
+    if (!raw) return [];
     return JSON.parse(raw);
   } catch {
-    return SEEDED_DEMO_CASES;
+    return [];
   }
+}
+
+export function getDemoCases(): AgentCase[] {
+  return SEEDED_DEMO_CASES;
 }
 
 export function saveStoredCase(caseData: AgentCase): AgentCase {
@@ -190,7 +190,9 @@ export function saveStoredCase(caseData: AgentCase): AgentCase {
 
 export function getCaseById(id: string): AgentCase | null {
   const cases = getStoredCases();
-  return cases.find((c) => c.id === id) ?? null;
+  const found = cases.find((c) => c.id === id);
+  if (found) return found;
+  return SEEDED_DEMO_CASES.find((c) => c.id === id) ?? null;
 }
 
 export function resetDemoCases(): AgentCase[] {

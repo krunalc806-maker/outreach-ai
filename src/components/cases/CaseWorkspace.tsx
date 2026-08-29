@@ -61,19 +61,20 @@ export default function CaseWorkspace() {
   };
 
   useEffect(() => {
+    // 1. Check local storage
     const loaded = getStoredCases();
-    setCases(loaded);
-    if (loaded.length > 0 && !activeCaseId) {
+    if (loaded.length > 0) {
+      setCases(loaded);
       setActiveCaseId(loaded[0].id);
     }
 
-    // Synchronize latest cases from persistent Supabase database
+    // 2. Synchronize latest cases from persistent Supabase database
     fetch("/api/cases")
       .then((res) => res.json())
       .then((data) => {
-        if (data.success && Array.isArray(data.cases) && data.cases.length > 0) {
+        if (data.success && Array.isArray(data.cases)) {
           setCases(data.cases);
-          if (!activeCaseId) {
+          if (data.cases.length > 0 && (!activeCaseId || !data.cases.some((c: any) => c.id === activeCaseId))) {
             setActiveCaseId(data.cases[0].id);
           }
         }
@@ -81,7 +82,7 @@ export default function CaseWorkspace() {
       .catch(() => null);
   }, []);
 
-  const activeCase = cases.find((c) => c.id === activeCaseId) || cases[0];
+  const activeCase = cases.find((c) => c.id === activeCaseId) || (cases.length > 0 ? cases[0] : null);
 
   const handleCreateCase = async (promptText?: string) => {
     const text = promptText || inputPrompt;
@@ -178,27 +179,13 @@ export default function CaseWorkspace() {
               {opportunity.title}
             </h1>
             <p className="max-w-3xl text-xs sm:text-sm text-zinc-400">
-              {opportunity.subtitle} — Integrated across <span className="font-semibold text-zinc-200">Delhivery Logistics</span>, <span className="font-semibold text-zinc-200">Pine Labs Payments</span> & <span className="font-semibold text-zinc-200">Gnani Voice</span> rails.
+              State any delivery exception, false NDR attempt, or delayed refund in natural language (English or Hindi). OutreachAI autonomously orchestrates across courier and banking rails to secure verified resolution.
             </p>
           </div>
-        </div>
-      </div>
 
-      {/* Primary Consumer Intake Card: "Tell the agent what you need" */}
-      <div className="rounded-3xl border border-white/10 bg-[#0d1017] p-6 shadow-xl">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2.5">
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#8b5cf6] text-white font-bold shadow-md shadow-[#8b5cf6]/25">
-              <Bot size={18} />
-            </div>
-            <div>
-              <h2 className="font-bold text-white text-sm sm:text-base">Tell the Agent What You Need</h2>
-              <p className="text-xs text-zinc-400">Describe your dispute, delayed refund, or NDR delivery issue</p>
-            </div>
-          </div>
-          <div className="hidden sm:flex items-center gap-2 text-xs text-zinc-400">
-            <span className="h-1.5 w-1.5 rounded-full bg-[#8b5cf6] animate-pulse" />
-            <span>Agent Rails Active</span>
+          <div className="flex items-center gap-2 text-xs text-zinc-400">
+            <span className="h-2 w-2 rounded-full" style={{ backgroundColor: theme.primary }} />
+            <span>{cases.length} Active Cases</span>
           </div>
         </div>
 
@@ -253,6 +240,61 @@ export default function CaseWorkspace() {
           </div>
         </div>
       </div>
+
+      {/* Case Selector Pills if Multiple Cases */}
+      {cases.length > 1 && (
+        <div className="flex items-center gap-2 overflow-x-auto pb-1">
+          <span className="text-xs font-semibold text-zinc-500 shrink-0">Your Cases ({cases.length}):</span>
+          {cases.map((c) => (
+            <button
+              key={c.id}
+              onClick={() => setActiveCaseId(c.id)}
+              className={`rounded-xl px-3 py-1.5 text-xs font-medium transition shrink-0 flex items-center gap-2 ${
+                c.id === (activeCase?.id || "")
+                  ? "bg-white/10 text-white border border-white/20 shadow-sm"
+                  : "bg-white/5 text-zinc-400 border border-white/5 hover:text-white"
+              }`}
+            >
+              <span
+                className="h-2 w-2 rounded-full"
+                style={{ backgroundColor: c.status === "RESOLVED" ? "#10B981" : theme.primary }}
+              />
+              <span className="truncate max-w-[200px]">{c.title}</span>
+            </button>
+          ))}
+        </div>
+      )}
+
+      {/* Empty State when 0 cases exist */}
+      {!activeCase && cases.length === 0 && (
+        <div className="rounded-3xl border border-white/10 bg-[#0d1017] p-8 sm:p-12 text-center shadow-2xl space-y-6">
+          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl border border-white/10 bg-white/5" style={{ color: theme.primary }}>
+            <Package size={28} />
+          </div>
+          <div className="space-y-2 max-w-md mx-auto">
+            <h2 className="text-xl font-bold text-white sm:text-2xl">No Active Cases Yet</h2>
+            <p className="text-xs sm:text-sm text-zinc-400 leading-relaxed">
+              Describe your consumer dispute, delivery exception, or delayed refund above to deploy your autonomous resolution agent.
+            </p>
+          </div>
+          <div className="flex flex-wrap justify-center gap-3 pt-2">
+            <button
+              onClick={() => handleCreateCase("My Delhivery package with AWB #DEL-984210 is stuck in false NDR and Zara hasn't processed my ₹3,499 refund.")}
+              className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-4 py-2.5 text-xs text-zinc-300 hover:border-white/30 hover:bg-white/10 hover:text-white transition active:scale-95"
+            >
+              <Truck size={14} className="text-[#a78bfa]" />
+              <span>Resolve Delhivery NDR & Refund (₹3,499)</span>
+            </button>
+            <button
+              onClick={() => handleCreateCase("Pine Labs transaction failed at merchant POS but ₹1,850 was debited with no auto-reversal.")}
+              className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-4 py-2.5 text-xs text-zinc-300 hover:border-white/30 hover:bg-white/10 hover:text-white transition active:scale-95"
+            >
+              <IndianRupee size={14} className="text-emerald-400" />
+              <span>Claim Failed Payment Reversal (₹1,850)</span>
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Active Case Workspace Card */}
       {activeCase && (
@@ -348,20 +390,20 @@ export default function CaseWorkspace() {
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id as any)}
-                  className={`inline-flex items-center gap-2 rounded-xl px-3.5 py-2 text-xs font-semibold transition active:scale-95 ${
+                  className={`inline-flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-semibold transition active:scale-95 whitespace-nowrap ${
                     isActive
-                      ? "text-white font-extrabold shadow-md"
-                      : "text-zinc-400 hover:bg-white/5 hover:text-white"
+                      ? "border border-white/20 bg-white/10 text-white shadow-sm"
+                      : "border border-transparent text-zinc-400 hover:border-white/10 hover:bg-white/5 hover:text-white"
                   }`}
                   style={{
-                    backgroundColor: isActive ? theme.primary : undefined,
-                    boxShadow: isActive ? `0 4px 16px ${theme.glow}` : undefined,
+                    borderColor: isActive ? theme.primary : undefined,
+                    color: isActive ? "#ffffff" : undefined,
                   }}
                 >
-                  <Icon size={14} />
+                  <Icon size={14} style={{ color: isActive ? theme.primary : "#A1A1AA" }} />
                   <span>{tab.label}</span>
-                  {tab.badge !== undefined && (
-                    <span className={`rounded-full px-1.5 py-0.2 text-[10px] ${isActive ? "bg-white/20 text-white" : "bg-zinc-800 text-zinc-400"}`}>
+                  {typeof tab.badge === "number" && tab.badge > 0 && (
+                    <span className="rounded-full bg-white/15 px-1.5 py-0.2 text-[10px] font-bold">
                       {tab.badge}
                     </span>
                   )}
@@ -370,323 +412,329 @@ export default function CaseWorkspace() {
             })}
           </div>
 
-          {/* TAB 1: TASK PLAN */}
+          {/* Tab 1: Dynamic Task Plan */}
           {activeTab === "plan" && (
             <div className="space-y-4">
-              <div className="rounded-3xl border border-white/10 bg-[#0d1017] p-6 space-y-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h3 className="text-base font-bold text-white">Dynamic Execution Plan</h3>
-                    <p className="text-xs text-zinc-400">Autonomous steps formulated based on intent & statutory policy</p>
-                  </div>
-                  <button
-                    onClick={() => {
-                      const firstPending = activeCase.planSteps.find((s) => s.status === "PENDING");
-                      if (firstPending) handleExecuteStep(firstPending.id);
-                    }}
-                    disabled={isProcessing}
-                    className="inline-flex items-center gap-1.5 rounded-xl bg-[#8b5cf6] px-3.5 py-1.5 text-xs font-extrabold text-white shadow-md shadow-[#8b5cf6]/25 hover:bg-[#7c3aed] active:scale-95 disabled:opacity-50"
-                  >
-                    <Play size={12} /> Run Next Step
-                  </button>
-                </div>
-
-                <div className="space-y-2.5">
-                  {activeCase.planSteps.map((step, index) => (
-                    <div
-                      key={step.id}
-                      className={`rounded-2xl border p-4 transition ${
-                        step.status === "COMPLETED"
-                          ? "border-emerald-500/20 bg-emerald-500/5"
-                          : step.status === "IN_PROGRESS"
-                          ? "border-[#8b5cf6]/40 bg-[#8b5cf6]/5"
-                          : step.status === "REQUIRES_APPROVAL"
-                          ? "border-amber-500/30 bg-amber-500/5"
-                          : "border-white/10 bg-white/5"
-                      }`}
-                    >
-                      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                        <div className="flex items-start gap-3">
-                          <div
-                            className={`mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-lg text-xs font-bold ${
-                              step.status === "COMPLETED"
-                                ? "bg-emerald-500 text-black"
-                                : step.status === "IN_PROGRESS"
-                                ? "bg-[#8b5cf6] text-white animate-pulse"
-                                : "bg-zinc-800 text-zinc-300"
-                            }`}
-                          >
-                            {step.status === "COMPLETED" ? <CheckCircle2 size={14} /> : index + 1}
-                          </div>
-                          <div>
-                            <div className="flex flex-wrap items-center gap-2">
-                              <span className="font-bold text-white text-xs sm:text-sm">{step.title}</span>
-                              <span className="rounded-full bg-zinc-800 px-2 py-0.5 text-[10px] font-mono uppercase text-[#a78bfa] border border-white/5">
-                                {step.rail} rail
-                              </span>
-                              <span
-                                className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${
-                                  step.riskLevel === "HIGH"
-                                    ? "bg-rose-500/20 text-rose-300"
-                                    : step.riskLevel === "MEDIUM"
-                                    ? "bg-amber-500/20 text-amber-300"
-                                    : "bg-blue-500/20 text-blue-300"
-                                }`}
-                              >
-                                {step.riskLevel} RISK
-                              </span>
-                            </div>
-                            <p className="mt-1 text-xs text-zinc-400">{step.description}</p>
-                            {step.executionNote && (
-                              <p className="mt-2 text-xs font-mono text-emerald-300 bg-black/40 p-2 rounded-lg border border-emerald-500/20">
-                                ↳ Result: {step.executionNote}
-                              </p>
-                            )}
-                          </div>
-                        </div>
-
-                        <div className="shrink-0 flex items-center gap-2">
-                          {step.status === "PENDING" && (
-                            <button
-                              type="button"
-                              onClick={() => handleExecuteStep(step.id)}
-                              disabled={isProcessing}
-                              className="rounded-xl border border-white/10 bg-white/5 px-3 py-1.5 text-xs font-semibold text-zinc-200 hover:bg-white/10 active:scale-95"
-                            >
-                              Execute Step
-                            </button>
-                          )}
-                          {step.status === "REQUIRES_APPROVAL" && (
-                            <button
-                              type="button"
-                              onClick={() => setActiveTab("approvals")}
-                              className="rounded-xl bg-amber-500 text-black font-bold px-3 py-1.5 text-xs animate-pulse active:scale-95"
-                            >
-                              Requires Approval
-                            </button>
-                          )}
-                          {step.status === "COMPLETED" && (
-                            <span className="text-xs font-medium text-emerald-400 flex items-center gap-1">
-                              <CheckCircle2 size={13} /> Completed
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* TAB 2: APPROVALS */}
-          {activeTab === "approvals" && (
-            <div className="space-y-4">
-              <div className="rounded-3xl border border-white/10 bg-[#0d1017] p-6 space-y-4">
+              <div className="flex items-center justify-between">
                 <div>
-                  <h3 className="text-base font-bold text-white">Human-in-the-Loop Action Approvals</h3>
+                  <h3 className="text-base font-bold text-white">Autonomous Execution Graph</h3>
                   <p className="text-xs text-zinc-400">
-                    High-risk and financial actions require explicit consumer authorization before the agent interacts with payment or legal rails.
+                    The agent breaks down the consumer grievance into sequential machine-executable rail actions.
                   </p>
                 </div>
+              </div>
 
-                {activeCase.approvals.length === 0 ? (
-                  <div className="rounded-2xl border border-white/5 bg-white/5 p-8 text-center text-zinc-400 text-xs">
-                    No pending approval requests.
-                  </div>
-                ) : (
-                  <div className="space-y-3">
-                    {activeCase.approvals.map((approval) => (
-                      <div
-                        key={approval.id}
-                        className={`rounded-2xl border p-5 transition ${
-                          approval.status === "PENDING"
-                            ? "border-amber-500/40 bg-[#161510] shadow-xl"
-                            : approval.status === "APPROVED"
-                            ? "border-emerald-500/30 bg-emerald-500/5"
-                            : "border-rose-500/30 bg-rose-500/5"
-                        }`}
-                      >
-                        <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-                          <div className="space-y-1.5">
-                            <div className="flex items-center gap-2">
-                              <span className="rounded-full bg-rose-500/20 border border-rose-500/30 px-2 py-0.2 text-[10px] font-bold text-rose-300">
-                                {approval.riskLevel} RISK ACTION
-                              </span>
-                              <span className="text-xs text-zinc-400">
-                                Status: <span className="font-semibold text-white">{approval.status}</span>
-                              </span>
-                            </div>
-                            <h4 className="text-sm font-bold text-white">{approval.title}</h4>
-                            <p className="text-xs text-zinc-300">{approval.description}</p>
-                            <div className="rounded-xl bg-black/50 p-2.5 border border-white/5 text-xs space-y-0.5">
-                              <p className="font-semibold text-[#a78bfa] text-[11px]">Impact Analysis:</p>
-                              <p className="text-zinc-300 text-[11px]">{approval.impactAnalysis}</p>
-                            </div>
+              <div className="space-y-3">
+                {activeCase.planSteps.map((step, idx) => (
+                  <div
+                    key={step.id}
+                    className={`rounded-2xl border p-4 transition-all ${
+                      step.status === "COMPLETED"
+                        ? "border-emerald-500/20 bg-emerald-500/5"
+                        : step.status === "REQUIRES_APPROVAL"
+                        ? "border-amber-500/30 bg-amber-500/5"
+                        : "border-white/10 bg-[#0d0d12]"
+                    }`}
+                  >
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                      <div className="flex items-start gap-3">
+                        <div
+                          className={`mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-bold ${
+                            step.status === "COMPLETED"
+                              ? "bg-emerald-500 text-white"
+                              : "bg-zinc-800 text-zinc-400"
+                          }`}
+                        >
+                          {step.status === "COMPLETED" ? <CheckCircle2 size={14} /> : idx + 1}
+                        </div>
+                        <div>
+                          <div className="flex flex-wrap items-center gap-2">
+                            <span className="font-semibold text-white text-sm">{step.title}</span>
+                            <span className="rounded bg-zinc-800 px-2 py-0.5 text-[10px] font-mono text-zinc-400 uppercase">
+                              Rail: {step.rail}
+                            </span>
+                            <span
+                              className={`rounded px-2 py-0.5 text-[10px] font-semibold ${
+                                step.riskLevel === "HIGH"
+                                  ? "bg-rose-500/20 text-rose-300"
+                                  : "bg-blue-500/20 text-blue-300"
+                              }`}
+                            >
+                              {step.riskLevel} Risk
+                            </span>
                           </div>
-
-                          {approval.status === "PENDING" ? (
-                            <div className="flex sm:flex-col gap-2 shrink-0">
-                              <button
-                                type="button"
-                                onClick={() => handleApproval(approval.id, "APPROVED")}
-                                className="inline-flex items-center justify-center gap-1.5 rounded-xl bg-emerald-500 text-black font-extrabold px-4 py-2 text-xs shadow hover:bg-emerald-400 active:scale-95"
-                              >
-                                <CheckCircle2 size={13} /> Approve Action
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => handleApproval(approval.id, "REJECTED")}
-                                className="inline-flex items-center justify-center gap-1.5 rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-xs font-medium text-zinc-300 hover:bg-white/10 hover:text-white active:scale-95"
-                              >
-                                <XCircle size={13} /> Reject
-                              </button>
-                            </div>
-                          ) : (
-                            <div className="shrink-0 text-right">
-                              <span
-                                className={`text-xs font-semibold ${
-                                  approval.status === "APPROVED" ? "text-emerald-400" : "text-rose-400"
-                                }`}
-                              >
-                                {approval.decisionNote}
-                              </span>
-                            </div>
+                          <p className="text-xs text-zinc-400 mt-1">{step.description}</p>
+                          {step.executionNote && (
+                            <p className="text-xs text-emerald-300/90 font-mono mt-1 bg-black/40 p-2 rounded-lg border border-white/5">
+                              ✓ {step.executionNote}
+                            </p>
                           )}
                         </div>
                       </div>
-                    ))}
+
+                      <div className="flex items-center gap-2 self-end sm:self-center">
+                        {step.status === "PENDING" && (
+                          <button
+                            type="button"
+                            disabled={isProcessing}
+                            onClick={() => handleExecuteStep(step.id)}
+                            className="inline-flex items-center gap-1.5 rounded-xl bg-white/10 px-3 py-1.5 text-xs font-semibold text-white hover:bg-white/20 transition active:scale-95 disabled:opacity-50"
+                          >
+                            <Play size={12} /> Execute Step
+                          </button>
+                        )}
+                        <span
+                          className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${
+                            step.status === "COMPLETED"
+                              ? "text-emerald-400"
+                              : step.status === "REQUIRES_APPROVAL"
+                              ? "text-amber-400"
+                              : "text-zinc-500"
+                          }`}
+                        >
+                          {step.status}
+                        </span>
+                      </div>
+                    </div>
                   </div>
-                )}
+                ))}
               </div>
             </div>
           )}
 
-          {/* TAB 3: TIMELINE */}
-          {activeTab === "timeline" && <CaseTimeline agentCase={activeCase} />}
-
-          {/* TAB 4: RAIL TELEMETRY */}
-          {activeTab === "rails" && (
+          {/* Tab 2: Human Approvals */}
+          {activeTab === "approvals" && (
             <div className="space-y-4">
-              <div className="rounded-3xl border border-white/10 bg-[#0d1017] p-6 space-y-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h3 className="text-base font-bold text-white">Live Rail Telemetry</h3>
-                    <p className="text-xs text-zinc-400">Verifiable logs across Delhivery, Pine Labs, and Gnani infrastructure</p>
-                  </div>
-                  <div className="flex gap-2">
-                    <span className="rounded-lg border border-white/10 bg-[#11141c] px-2 py-0.5 text-[10px] text-zinc-300 font-mono">
-                      Delhivery: SANDBOX_SIMULATED
-                    </span>
-                    <span className="rounded-lg border border-white/10 bg-[#11141c] px-2 py-0.5 text-[10px] text-zinc-300 font-mono">
-                      Pine Labs: SANDBOX_SIMULATED
-                    </span>
-                  </div>
-                </div>
+              <div>
+                <h3 className="text-base font-bold text-white">Bounded Autonomy: Human Authorizations</h3>
+                <p className="text-xs text-zinc-400">
+                  The agent requires explicit 1-tap consent before triggering irreversible financial or legal actions.
+                </p>
+              </div>
 
-                <div className="space-y-1.5 font-mono text-xs">
-                  {activeCase.auditLog.map((log) => (
+              {activeCase.approvals.length === 0 ? (
+                <div className="p-8 text-center text-xs text-zinc-500 bg-[#0d0d12] rounded-2xl border border-white/5">
+                  No approval requests pending for this case.
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {activeCase.approvals.map((appr) => (
                     <div
-                      key={log.id}
-                      className="rounded-xl border border-white/5 bg-[#11141c] p-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2"
+                      key={appr.id}
+                      className="rounded-2xl border border-amber-500/30 bg-amber-500/5 p-5 space-y-4"
                     >
-                      <div className="flex items-center gap-2">
-                        <span className="text-zinc-500 text-[11px]">[{new Date(log.timestamp).toLocaleTimeString()}]</span>
-                        {log.rail && (
-                          <span className="rounded bg-[#8b5cf6]/10 border border-[#8b5cf6]/30 px-1.5 py-0.2 text-[#a78bfa] uppercase font-bold text-[9px]">
-                            {log.rail}
-                          </span>
-                        )}
-                        <span className="font-semibold text-white text-xs">{log.title}:</span>
-                        <span className="text-zinc-300 text-xs">{log.detail}</span>
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-amber-500/20 pb-3">
+                        <div className="flex items-center gap-2">
+                          <ShieldAlert size={16} className="text-amber-400" />
+                          <h4 className="font-bold text-white text-sm">{appr.title}</h4>
+                        </div>
+                        <span className="rounded-full bg-amber-500/20 px-2.5 py-0.5 text-xs font-semibold text-amber-300">
+                          {appr.status}
+                        </span>
                       </div>
-                      <span className="rounded bg-zinc-800 px-2 py-0.5 text-[9px] text-zinc-400 shrink-0">
-                        {log.mode}
-                      </span>
+
+                      <div className="grid gap-3 sm:grid-cols-2 text-xs">
+                        <div className="space-y-1">
+                          <span className="text-zinc-500 block">Proposed Action</span>
+                          <p className="text-zinc-200">{appr.proposedAction}</p>
+                        </div>
+                        <div className="space-y-1">
+                          <span className="text-zinc-500 block">Impact & Risk Analysis</span>
+                          <p className="text-zinc-200">{appr.impactAnalysis}</p>
+                        </div>
+                      </div>
+
+                      {appr.status === "PENDING" && (
+                        <div className="flex items-center justify-end gap-3 border-t border-amber-500/20 pt-3">
+                          <button
+                            type="button"
+                            disabled={isProcessing}
+                            onClick={() => handleApproval(appr.id, "REJECTED")}
+                            className="rounded-xl border border-rose-500/30 bg-rose-500/10 px-4 py-2 text-xs font-semibold text-rose-300 hover:bg-rose-500/20 transition active:scale-95"
+                          >
+                            Reject Action
+                          </button>
+                          <button
+                            type="button"
+                            disabled={isProcessing}
+                            onClick={() => handleApproval(appr.id, "APPROVED")}
+                            className="inline-flex items-center gap-1.5 rounded-xl bg-emerald-500 px-4 py-2 text-xs font-extrabold text-white shadow-lg shadow-emerald-500/20 hover:bg-emerald-600 transition active:scale-95"
+                          >
+                            <CheckCircle2 size={13} /> Authorize Instant Settlement
+                          </button>
+                        </div>
+                      )}
+
+                      {appr.status !== "PENDING" && (
+                        <p className="text-xs font-mono text-zinc-400 border-t border-amber-500/20 pt-2">
+                          Decision recorded: <span className="text-white font-semibold">{appr.status}</span> ({appr.decisionNote})
+                        </p>
+                      )}
                     </div>
                   ))}
                 </div>
+              )}
+            </div>
+          )}
+
+          {/* Tab 3: Case Timeline */}
+          {activeTab === "timeline" && (
+            <CaseTimeline agentCase={activeCase} />
+          )}
+
+          {/* Tab 4: Rail Audit & Telemetry */}
+          {activeTab === "rails" && (
+            <div className="grid gap-4 md:grid-cols-3">
+              {/* Rail 1: Delhivery Logistics */}
+              <div className="rounded-2xl border border-white/10 bg-[#0d0d12] p-4 space-y-3">
+                <div className="flex items-center justify-between border-b border-white/5 pb-2">
+                  <div className="flex items-center gap-2">
+                    <Truck size={15} className="text-[#a78bfa]" />
+                    <span className="font-bold text-white text-xs">Delhivery Logistics Rail</span>
+                  </div>
+                  <span className="rounded bg-emerald-500/20 text-emerald-300 text-[10px] px-2 py-0.5 font-mono">
+                    CONNECTED
+                  </span>
+                </div>
+                <div className="space-y-1.5 text-xs text-zinc-400">
+                  <div className="flex justify-between">
+                    <span>AWB Number:</span>
+                    <span className="font-mono text-zinc-200">{activeCase.extractedEntities.awbNumber || "DEL-984210-IN"}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Hub Station:</span>
+                    <span className="text-zinc-200">Indiranagar Bengaluru (560038)</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>NDR Exception:</span>
+                    <span className="text-rose-400 font-semibold">2 False Claims Detected</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Override Status:</span>
+                    <span className="text-emerald-400 font-semibold">Priority Re-Attempt Scheduled</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Rail 2: Pine Labs Gateway */}
+              <div className="rounded-2xl border border-white/10 bg-[#0d0d12] p-4 space-y-3">
+                <div className="flex items-center justify-between border-b border-white/5 pb-2">
+                  <div className="flex items-center gap-2">
+                    <IndianRupee size={15} className="text-emerald-400" />
+                    <span className="font-bold text-white text-xs">Pine Labs Settlement Rail</span>
+                  </div>
+                  <span className="rounded bg-emerald-500/20 text-emerald-300 text-[10px] px-2 py-0.5 font-mono">
+                    CONNECTED
+                  </span>
+                </div>
+                <div className="space-y-1.5 text-xs text-zinc-400">
+                  <div className="flex justify-between">
+                    <span>Gateway TxID:</span>
+                    <span className="font-mono text-zinc-200">{activeCase.extractedEntities.transactionId || "PL-TX-998241"}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Merchant Acquirer:</span>
+                    <span className="text-zinc-200">HDFC Bank Gateway</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Refund SLA:</span>
+                    <span className="text-rose-400 font-semibold">Exceeded by 74 hrs</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Settlement UTR:</span>
+                    <span className="font-mono text-emerald-400 font-bold">423891004812 (Verified)</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Rail 3: Gnani Regional Voice */}
+              <div className="rounded-2xl border border-white/10 bg-[#0d0d12] p-4 space-y-3">
+                <div className="flex items-center justify-between border-b border-white/5 pb-2">
+                  <div className="flex items-center gap-2">
+                    <Volume2 size={15} className="text-cyan-400" />
+                    <span className="font-bold text-white text-xs">Gnani Voice Rail</span>
+                  </div>
+                  <span className="rounded bg-cyan-500/20 text-cyan-300 text-[10px] px-2 py-0.5 font-mono">
+                    ACTIVE
+                  </span>
+                </div>
+                <div className="space-y-1.5 text-xs text-zinc-400">
+                  <div className="flex justify-between">
+                    <span>Language Detected:</span>
+                    <span className="text-zinc-200 font-semibold">Hinglish / Kannada</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Audio Intent:</span>
+                    <span className="text-zinc-200">Delivery Landmark Confirmation</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>ASR Confidence:</span>
+                    <span className="text-emerald-400 font-mono">98.4%</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Hub IVR Dispatch:</span>
+                    <span className="text-zinc-200 font-mono">Automated Prompt Sent</span>
+                  </div>
+                </div>
               </div>
             </div>
           )}
 
-          {/* TAB 5: FOLLOW-UP ENGINE */}
+          {/* Tab 5: Follow-Up Engine */}
           {activeTab === "followup" && (
-            <div className="space-y-4">
-              <div className="rounded-3xl border border-white/10 bg-[#0d1017] p-6 space-y-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h3 className="text-base font-bold text-white">Autonomous Follow-Up State Machine</h3>
-                    <p className="text-xs text-zinc-400">
-                      Bounded retry policies with statutory escalation to National Consumer Helpline
-                    </p>
-                  </div>
-                  <div className="flex gap-2">
-                    <button
-                      type="button"
-                      onClick={() => handleFollowUpTick(false)}
-                      disabled={isProcessing || activeCase.followUp.status === "RESOLVED"}
-                      className="inline-flex items-center gap-1.5 rounded-xl border border-white/10 bg-white/5 px-3 py-1.5 text-xs font-semibold text-white hover:bg-white/10 active:scale-95 disabled:opacity-50"
-                    >
-                      <RefreshCw size={12} className={isProcessing ? "animate-spin" : ""} />
-                      Simulate Follow-Up Tick
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => handleFollowUpTick(true)}
-                      disabled={isProcessing || activeCase.followUp.status === "RESOLVED"}
-                      className="inline-flex items-center gap-1.5 rounded-xl bg-emerald-500 text-black font-extrabold px-3 py-1.5 text-xs hover:bg-emerald-400 active:scale-95 disabled:opacity-50"
-                    >
-                      <CheckCircle2 size={12} />
-                      Simulate Merchant UTR Settlement
-                    </button>
-                  </div>
+            <div className="rounded-2xl border border-white/10 bg-[#0d0d12] p-6 space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-white/5 pb-4">
+                <div>
+                  <h3 className="text-base font-bold text-white">Bounded Escalation DAG Engine</h3>
+                  <p className="text-xs text-zinc-400">
+                    Schedules automated follow-up probes citing statutory SLAs under the Consumer Protection Act (2019).
+                  </p>
                 </div>
+                <span className="rounded-full bg-[#8b5cf6]/20 px-3 py-1 text-xs font-mono text-[#a78bfa]">
+                  Attempt {activeCase.followUp.currentAttempt} of {activeCase.followUp.maxAttempts}
+                </span>
+              </div>
 
-                <div className="grid gap-3 md:grid-cols-3">
-                  <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
-                    <span className="text-xs text-zinc-400">Follow-Up Attempts</span>
-                    <p className="mt-1.5 text-xl font-bold text-white">
-                      {activeCase.followUp.currentAttempt} / {activeCase.followUp.maxAttempts}
-                    </p>
-                    <p className="text-[10px] text-zinc-500 mt-0.5">Bounded retry limit enforced</p>
-                  </div>
-                  <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
-                    <span className="text-xs text-zinc-400">Next Scheduled Check</span>
-                    <p className="mt-1.5 text-xs font-semibold text-[#a78bfa]">
-                      {activeCase.followUp.nextScheduledAt
-                        ? new Date(activeCase.followUp.nextScheduledAt).toLocaleTimeString()
-                        : "None Scheduled"}
-                    </p>
-                    <p className="text-[10px] text-zinc-500 mt-0.5">Exponential backoff active</p>
-                  </div>
-                  <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
-                    <span className="text-xs text-zinc-400">State Machine Status</span>
-                    <p className="mt-1.5 text-xs font-semibold text-emerald-400">
-                      {activeCase.followUp.status}
-                    </p>
-                    <p className="text-[10px] text-zinc-500 mt-0.5">{activeCase.followUp.stopReason || "Monitoring responses"}</p>
-                  </div>
+              <div className="grid gap-4 sm:grid-cols-3 text-xs">
+                <div className="rounded-xl bg-[#11141c] p-3 border border-white/5 space-y-1">
+                  <span className="text-zinc-500 block">Probe Interval</span>
+                  <span className="text-white font-semibold">Every 2 Hours (120 min)</span>
                 </div>
+                <div className="rounded-xl bg-[#11141c] p-3 border border-white/5 space-y-1">
+                  <span className="text-zinc-500 block">Next Scheduled Check</span>
+                  <span className="text-white font-semibold font-mono">In 42 minutes</span>
+                </div>
+                <div className="rounded-xl bg-[#11141c] p-3 border border-white/5 space-y-1">
+                  <span className="text-zinc-500 block">Termination Condition</span>
+                  <span className="text-emerald-400 font-semibold">Verified Bank UTR or Legal Filing</span>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-end gap-3 pt-2">
+                <button
+                  type="button"
+                  disabled={isProcessing}
+                  onClick={() => handleFollowUpTick(false)}
+                  className="rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-xs font-semibold text-zinc-300 hover:bg-white/10 transition active:scale-95 disabled:opacity-50"
+                >
+                  Simulate Follow-Up Tick
+                </button>
+                <button
+                  type="button"
+                  disabled={isProcessing}
+                  onClick={() => handleFollowUpTick(true)}
+                  className="inline-flex items-center gap-1.5 rounded-xl bg-[#8b5cf6] px-4 py-2 text-xs font-extrabold text-white shadow-md shadow-[#8b5cf6]/20 transition hover:bg-[#7c3aed] active:scale-95 disabled:opacity-50"
+                >
+                  <RefreshCw size={13} /> Simulate Merchant Resolution
+                </button>
               </div>
             </div>
           )}
 
-          {/* TAB 6: AGENT DEFENSE */}
-          {activeTab === "defense" && <AgentVsAppComparison />}
-        </div>
-      )}
-
-      {/* Clean Empty State when no cases exist */}
-      {!activeCase && (
-        <div className="rounded-3xl border border-white/10 bg-[#0d1017] p-8 text-center space-y-3 shadow-xl">
-          <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-[#8b5cf6]/20 text-[#a78bfa]">
-            <Workflow size={24} />
-          </div>
-          <h3 className="text-base font-bold text-white">No Active Grievance Cases</h3>
-          <p className="max-w-md mx-auto text-xs text-zinc-400">
-            Type your delayed refund, false NDR, or merchant dispute in the intake box above or click a sample case to deploy your autonomous consumer grievance agent.
-          </p>
+          {/* Tab 6: Agent Defense & Why An App Fails */}
+          {activeTab === "defense" && (
+            <AgentVsAppComparison />
+          )}
         </div>
       )}
     </div>

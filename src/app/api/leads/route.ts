@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { getDbProfile } from "@/lib/db/profiles";
 
-interface LeadItem {
+export interface LeadItem {
   id: string;
   user_id: string;
   company_name: string;
@@ -18,7 +18,8 @@ interface LeadItem {
 
 let inMemoryLeads: LeadItem[] = [];
 
-function toValidUuid(id: string): string {
+function toValidUuid(id?: string | null): string | null {
+  if (!id) return null;
   if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)) {
     return id;
   }
@@ -45,17 +46,32 @@ export async function GET(request: NextRequest) {
 
     const uuid = toValidUuid(rawUserId);
 
-    let dbLeads: any[] = [];
-    try {
-      const { data } = await supabase
-        .from("leads")
-        .select("*")
-        .eq("user_id", uuid)
-        .order("created_at", { ascending: false });
-      if (data && Array.isArray(data)) {
-        dbLeads = data;
-      }
-    } catch {}
+    let dbLeads: LeadItem[] = [];
+    if (uuid) {
+      try {
+        const { data } = await supabase
+          .from("leads")
+          .select("*")
+          .eq("user_id", uuid)
+          .order("created_at", { ascending: false });
+
+        if (data && Array.isArray(data)) {
+          dbLeads = data.map((row: any) => ({
+            id: row.id,
+            user_id: row.user_id,
+            company_name: row.company || row.company_name || "Counterparty",
+            category: row.category || "E-Commerce",
+            contact_email: row.email || row.contact_email || null,
+            contact_phone: row.phone || row.contact_phone || null,
+            pipeline_stage: row.stage || row.pipeline_stage || "New",
+            resolution_rate: Number(row.resolution_rate || row.score || 90.0),
+            notes: row.notes || "",
+            created_at: row.created_at,
+            updated_at: row.updated_at || row.created_at,
+          }));
+        }
+      } catch {}
+    }
 
     const memLeads = inMemoryLeads.filter((l) => l.user_id === rawUserId || l.user_id === uuid);
     const combined = [...dbLeads, ...memLeads.filter((m) => !dbLeads.some((d) => d.id === m.id))];
@@ -69,7 +85,8 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json().catch(() => null);
-    if (!body || !body.company_name) {
+    const companyName = body?.company_name || body?.company;
+    if (!body || !companyName) {
       return NextResponse.json({ success: false, error: "Company name is required." }, { status: 400 });
     }
 
@@ -94,20 +111,32 @@ export async function POST(request: NextRequest) {
     const newLead: LeadItem = {
       id: leadId,
       user_id: rawUserId,
-      company_name: body.company_name,
+      company_name: companyName,
       category: body.category || "E-Commerce",
-      contact_email: body.contact_email || null,
-      contact_phone: body.contact_phone || null,
-      pipeline_stage: body.pipeline_stage || "New",
+      contact_email: body.contact_email || body.email || null,
+      contact_phone: body.contact_phone || body.phone || null,
+      pipeline_stage: body.pipeline_stage || body.stage || "New",
       resolution_rate: body.resolution_rate || 90.0,
       notes: body.notes || "",
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
     };
 
-    try {
-      await supabase.from("leads").insert({ ...newLead, user_id: uuid });
-    } catch {}
+    if (uuid) {
+      try {
+        await supabase.from("leads").insert({
+          id: leadId,
+          user_id: uuid,
+          company: newLead.company_name,
+          email: newLead.contact_email || "",
+          phone: newLead.contact_phone || "",
+          stage: newLead.pipeline_stage,
+          notes: newLead.notes || "",
+          created_at: newLead.created_at,
+          updated_at: newLead.updated_at,
+        });
+      } catch {}
+    }
 
     inMemoryLeads = [newLead, ...inMemoryLeads];
 
@@ -143,9 +172,11 @@ export async function DELETE(request: NextRequest) {
 
     const uuid = toValidUuid(rawUserId);
 
-    try {
-      await supabase.from("leads").delete().eq("id", id).eq("user_id", uuid);
-    } catch {}
+    if (uuid) {
+      try {
+        await supabase.from("leads").delete().eq("id", id).eq("user_id", uuid);
+      } catch {}
+    }
 
     inMemoryLeads = inMemoryLeads.filter((l) => l.id !== id);
 

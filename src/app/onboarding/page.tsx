@@ -104,21 +104,25 @@ export default function OnboardingPage() {
     setIsSubmitting(true);
     setErrorMessage(null);
 
-    const fd = new FormData();
-    fd.append("fullName", formData.fullName || "Consumer");
-    fd.append("role", formData.role);
-    fd.append("organization", formData.organization || "Not provided");
-    fd.append("primaryObjective", formData.primaryObjective);
-    fd.append("avatarUrl", formData.avatarUrl);
-
     try {
-      const res = await saveOnboardingProfile(null, fd);
-      if (res?.error) {
-        setErrorMessage(res.error);
+      const res = await fetch("/api/user", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          fullName: formData.fullName || "Consumer",
+          role: formData.role,
+          organization: formData.organization || "Not provided",
+          primaryObjective: formData.primaryObjective,
+          avatarUrl: formData.avatarUrl,
+        }),
+      });
+      const data = await res.json().catch(() => null);
+      if (data && !data.success && data.error) {
+        setErrorMessage(data.error);
         setIsSubmitting(false);
-      } else {
-        router.push("/dashboard");
+        return;
       }
+      router.push("/dashboard");
     } catch {
       router.push("/dashboard");
     }

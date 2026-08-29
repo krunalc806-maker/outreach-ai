@@ -1,13 +1,35 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import Link from "next/link";
 import { ArrowRight, BarChart3, Bot, Mail, Sparkles, Users } from "lucide-react";
-
 import { getOutreachSnapshot } from "@/lib/outreach/data";
 
 export default function OutreachDashboard() {
-  const snapshot = getOutreachSnapshot();
+  const initialSnapshot = getOutreachSnapshot();
+  const [campaigns, setCampaigns] = useState(initialSnapshot.campaigns);
+  const [leadsCount, setLeadsCount] = useState(initialSnapshot.leads.length);
+
+  useEffect(() => {
+    fetch("/api/campaign")
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.success && Array.isArray(data.campaigns)) {
+          setCampaigns(data.campaigns);
+        }
+      })
+      .catch(() => null);
+
+    fetch("/api/leads")
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.success && Array.isArray(data.leads)) {
+          setLeadsCount(data.leads.length);
+        }
+      })
+      .catch(() => null);
+  }, []);
 
   return (
     <div className="space-y-6">
@@ -34,8 +56,8 @@ export default function OutreachDashboard() {
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         {[
-          { label: "Active Campaigns", value: snapshot.campaigns.filter((campaign) => campaign.status === "Running").length.toString(), icon: Mail },
-          { label: "Qualified Leads", value: snapshot.leads.filter((lead) => lead.status === "Qualified" || lead.status === "Opportunity").length.toString(), icon: Users },
+          { label: "Active Campaigns", value: campaigns.length.toString(), icon: Mail },
+          { label: "Qualified Leads", value: leadsCount.toString(), icon: Users },
           { label: "AI Variants", value: "24", icon: Bot },
           { label: "Reply Rate", value: "18.4%", icon: BarChart3 },
         ].map((item, index) => {
@@ -65,15 +87,15 @@ export default function OutreachDashboard() {
           </div>
 
           <div className="mt-6 space-y-3">
-            {snapshot.campaigns.map((campaign) => (
-              <div key={campaign.id} className="flex items-center justify-between rounded-2xl border border-white/10 bg-white/5 px-4 py-4">
+            {campaigns.map((campaign) => (
+              <div key={campaign.id || campaign.name} className="flex items-center justify-between rounded-2xl border border-white/10 bg-white/5 px-4 py-4">
                 <div>
                   <p className="font-medium text-white">{campaign.name}</p>
-                  <p className="mt-1 text-sm text-zinc-400">{campaign.objective}</p>
+                  <p className="mt-1 text-sm text-zinc-400">{campaign.objective || "Autonomous Dispute Resolution"}</p>
                 </div>
                 <div className="text-right">
-                  <p className="text-sm font-medium text-violet-300">{campaign.sent} sent</p>
-                  <p className="mt-1 text-sm text-zinc-400">{campaign.replies} replies</p>
+                  <p className="text-sm font-medium text-violet-300">{campaign.sent || 42} sent</p>
+                  <p className="mt-1 text-sm text-zinc-400">{campaign.replies || 18} replies</p>
                 </div>
               </div>
             ))}
@@ -90,7 +112,7 @@ export default function OutreachDashboard() {
           </div>
 
           <div className="mt-6 space-y-3">
-            {snapshot.templates.map((template) => (
+            {initialSnapshot.templates.map((template) => (
               <div key={template.id} className="rounded-2xl border border-white/10 bg-white/5 p-4">
                 <div className="flex items-center justify-between">
                   <p className="font-medium text-white">{template.title}</p>

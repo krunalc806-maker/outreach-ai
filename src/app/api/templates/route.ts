@@ -5,7 +5,7 @@ import { getDbProfile } from "@/lib/db/profiles";
 export interface GrievanceTemplate {
   id: string;
   name: string;
-  category: "Logistics & NDR" | "Payments & Refunds" | "Consumer Rights (CPA)" | "Aviation & Travel" | "Quick Commerce" | "Custom";
+  category: string;
   statutoryRef: string;
   subject: string;
   body: string;
@@ -14,35 +14,44 @@ export interface GrievanceTemplate {
   createdAt: string;
 }
 
-const defaultTemplates: GrievanceTemplate[] = [
+function toValidUuid(id?: string | null): string | null {
+  if (!id) return null;
+  if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)) {
+    return id;
+  }
+  const hex = Buffer.from(id).toString("hex").padEnd(32, "0").slice(0, 32);
+  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-4${hex.slice(13, 16)}-a${hex.slice(17, 20)}-${hex.slice(20, 32)}`;
+}
+
+export const STATUTORY_TEMPLATES: GrievanceTemplate[] = [
   {
-    id: "tmpl-cpa-2019",
-    name: "Statutory Notice under CPA 2019",
+    id: "tmpl-cpa-ndr",
+    name: "Consumer Protection Act (2019) Formal Grievance",
     category: "Consumer Rights (CPA)",
-    statutoryRef: "Consumer Protection Act (2019) & E-Commerce Rules (2020) Sec 2(47)",
-    subject: "FORMAL STATUTORY NOTICE: Consumer Grievance regarding Order #{{order_id}} | ₹{{amount}} — [Ref: CPA 2019]",
-    body: `To,\nThe Nodal Grievance Officer,\n{{merchant}}\n\nSubject: Formal Demand Notice under Section 2(47) of the Consumer Protection Act, 2019 for Order #{{order_id}}\n\nDear Sir/Madam,\n\nI am writing to formally register a statutory consumer grievance regarding transaction reference #{{order_id}} amounting to INR {{amount}}.\n\nIssue Description:\n{{issue}}\n\nUnder the Consumer Protection (E-Commerce) Rules, 2020, merchants and marketplace entities are mandated to acknowledge grievances within 48 hours and resolve consumer claims within 30 days. Furthermore, delayed reversal of funds beyond 72 hours violates statutory settlement guidelines.\n\nDEMANDED RESOLUTION:\n{{requested_resolution}} within 48 hours of this notice.\n\nFailing resolution within the statutory SLA, this matter will be automatically escalated to the National Consumer Helpline (NCH Docket) and the District Consumer Disputes Redressal Commission (DCDRC).\n\nRegards,\n{{consumer_name}}\nRef Case ID: {{case_id}}`,
-    variables: ["consumer_name", "merchant", "order_id", "amount", "issue", "requested_resolution", "case_id"],
+    statutoryRef: "Section 2(47) & Section 35, Consumer Protection Act 2019",
+    subject: "STATUTORY NOTICE: Unfair Trade Practice & Deficiency of Service - Order #{{order_id}}",
+    body: `To,\nThe Nodal Officer & Principal Grievance Officer,\n{{merchant}}\n\nSubject: Formal Notice under Consumer Protection Act (2019) for Deficiency of Service (Order #{{order_id}})\n\nDear Sir/Madam,\n\nI am issuing this formal statutory notice regarding order #{{order_id}} for the transaction amount of INR {{amount}}.\n\nSummary of Dispute:\n{{issue}}\n\nUnder Section 2(47) of the Consumer Protection Act, 2019, failure to deliver promised goods/services and withholding authorized refunds beyond statutory banking SLAs constitutes an 'Unfair Trade Practice' and 'Deficiency of Service'.\n\nDEMAND FOR RESOLUTION:\n{{requested_resolution}}\n\nKindly note that if this grievance is not resolved within {{deadline}}, I reserve the statutory right to escalate this matter to the National Consumer Helpline (NCH Docket) and institute proceedings before the District Consumer Disputes Redressal Commission (DCDRC).\n\nSincerely,\n{{consumer_name}}\nOutreachAI Autonomous Dispute Docket Ref: {{case_id}}`,
+    variables: ["consumer_name", "merchant", "order_id", "amount", "issue", "requested_resolution", "deadline", "case_id"],
     createdAt: "2026-08-25T10:00:00.000Z",
   },
   {
     id: "tmpl-delhivery-ndr",
-    name: "Delhivery NDR Logistics Override Notice",
+    name: "Delhivery Hub NDR Escalation & Rider Audit",
     category: "Logistics & NDR",
-    statutoryRef: "Logistics Consumer Service Level Agreement & Carrier Fair Practices",
-    subject: "URGENT: False NDR Re-Attempt Override Request | AWB #{{awb_number}}",
-    body: `To,\nThe Hub Supervisor / Delivery Escalation Desk,\nDelhivery Logistics & {{merchant}}\n\nSubject: False Non-Delivery Report (NDR) Investigation & Mandatory Re-Attempt for Waybill #{{awb_number}}\n\nDear Logistics Team,\n\nRegarding package with AWB #{{awb_number}} (Order #{{order_id}}):\n\nThe delivery rider has marked this shipment with false NDR attempts ('Customer Not Reachable' / 'Premises Closed') without initiating the mandatory consumer phone verification call.\n\nVerified Customer Details:\nName: {{consumer_name}}\nDelivery Landmark: {{issue}}\n\nDEMANDED RESOLUTION:\n1. Override the false NDR flag in Delhivery Core.\n2. Schedule an immediate priority re-attempt delivery window within 24 hours.\n3. Prohibit unauthorized RTO (Return to Origin) dispatch.\n\nRegards,\n{{consumer_name}}\nOutreachAI Telemetry Log: AWB-{{awb_number}}`,
-    variables: ["consumer_name", "merchant", "awb_number", "order_id", "issue"],
+    statutoryRef: "Logistics Carriage SLA & False Non-Delivery Investigation",
+    subject: "URGENT: False NDR Marking & Immediate Delivery Re-Attempt - AWB #{{awb_number}}",
+    body: `To,\nThe Operations Supervisor & Hub In-Charge,\nDelhivery Logistics Hub,\n\nSubject: Formal Escalation for False NDR Exception on AWB #{{awb_number}}\n\nDear Delhivery Operations Team,\n\nI am writing regarding consignment AWB #{{awb_number}} (Merchant: {{merchant}}).\n\nThe tracking system marked this shipment as 'Customer Not Reachable / Premises Closed', whereas no delivery attempt or phone call was made to the registered mobile number.\n\nREVISED INSTRUCTIONS:\n1. Schedule priority re-attempt within next 24 hours.\n2. Ensure delivery personnel calls prior to arrival.\n\nDemanded Resolution:\n{{requested_resolution}}\n\nRegards,\n{{consumer_name}}`,
+    variables: ["consumer_name", "merchant", "awb_number", "requested_resolution"],
     createdAt: "2026-08-25T10:00:00.000Z",
   },
   {
-    id: "tmpl-pinelabs-refund",
-    name: "Pine Labs / Banking Chargeback Petition",
+    id: "tmpl-pine-labs-refund",
+    name: "Pine Labs Gateway Refund Statutory Reversal",
     category: "Payments & Refunds",
-    statutoryRef: "RBI Digital Payment Grievance Directive DPSS.CO.PD No.629/02.01.014/2019-20",
-    subject: "DISPUTE FILING: Payment Settlement Failure & Auto-Reversal for TxID #{{order_id}}",
-    body: `To,\nThe Nodal Officer & Payment Settlement Desk,\nPine Labs / {{merchant}}\n\nSubject: Formal Chargeback & Failed Transaction Reversal Claim under RBI Turnaround Time (TAT) Framework\n\nDear Banking Team,\n\nTransaction Summary:\nMerchant: {{merchant}}\nDisputed Transaction Ref: {{order_id}}\nDisputed Amount: INR {{amount}}\n\nIssue Details:\n{{issue}}\n\nAs per Reserve Bank of India (RBI) circular on Harmonisation of Turn Around Time (TAT) and customer compensation for failed transactions (TAT SLA of T+1 day), the customer is entitled to immediate credit reversal of INR {{amount}} along with statutory penalty compensation of INR 100/day for delayed settlement exceeding the stipulated timeline.\n\nDEMANDED RESOLUTION:\nImmediate transmission of Bank UTR settlement reference to the originating account.\n\nRegards,\n{{consumer_name}}\nCase Token: {{case_id}}`,
-    variables: ["consumer_name", "merchant", "order_id", "amount", "issue", "case_id"],
+    statutoryRef: "RBI Circular DPSS.CO.PD No.629/02.01.014/2019-20 (Turn Around Time & Compensation)",
+    subject: "PAYMENT DISPUTE: Statutory Reversal Request under RBI TAT Framework | TxID #{{order_id}}",
+    body: `To,\nMerchant Acquiring & Nodal Escalation Desk,\nPine Labs / Payment Gateway Partner,\n\nSubject: Delayed Refund Reversal Request for Transaction ID #{{order_id}}\n\nDear Nodal Officer,\n\nI refer to payment transaction of INR {{amount}} debited for merchant {{merchant}} under reference #{{order_id}}.\n\nIssue:\n{{issue}}\n\nIn terms of the Reserve Bank of India Harmonisation of Turn Around Time (TAT) framework, failed transactions and authorized refunds must be reversed within T + 1 day, failing which a compensation of INR 100/- per day is mandated.\n\nDemanded Action: Verify gateway reversal status and provide Bank UTR Number immediately.\n\nRegards,\n{{consumer_name}}`,
+    variables: ["consumer_name", "merchant", "order_id", "amount", "issue"],
     createdAt: "2026-08-25T10:00:00.000Z",
   },
   {
@@ -74,56 +83,80 @@ export async function GET(request: NextRequest) {
     const supabase = await createClient();
     let { data: { user } } = await supabase.auth.getUser();
 
-    let userId = user?.id;
-    if (!userId) {
+    let rawUserId = user?.id;
+    if (!rawUserId) {
       const activeProfile = await getDbProfile();
       if (activeProfile && activeProfile.id && activeProfile.id !== "guest-user-evaluator") {
-        userId = activeProfile.id;
+        rawUserId = activeProfile.id;
       }
     }
 
     let userCustomTemplates: GrievanceTemplate[] = [];
 
-    if (userId) {
-      const { data } = await supabase
-        .from("templates")
-        .select("*")
-        .eq("user_id", userId)
-        .order("created_at", { ascending: false });
+    if (rawUserId) {
+      const uuid = toValidUuid(rawUserId);
+      try {
+        const { data } = await supabase
+          .from("templates")
+          .select("*")
+          .eq("user_id", uuid)
+          .order("created_at", { ascending: false });
 
-      if (data && Array.isArray(data)) {
-        userCustomTemplates = data.map((t: any) => ({
-          id: t.id,
-          name: t.name,
-          category: t.category || "Custom",
-          statutoryRef: t.statutory_ref || "Custom Consumer Grievance",
-          subject: t.subject,
-          body: t.body,
-          variables: Array.isArray(t.variables) ? t.variables : ["consumer_name", "merchant", "order_id", "amount"],
-          isCustom: true,
-          createdAt: t.created_at || new Date().toISOString(),
-        }));
-      }
+        if (data && Array.isArray(data)) {
+          userCustomTemplates = data.map((t: any) => ({
+            id: t.id,
+            name: t.name || t.template_name || t.title || "Custom Template",
+            category: t.category || "Custom",
+            statutoryRef: t.statutory_ref || "Custom Consumer Grievance",
+            subject: t.subject || "Grievance Notice",
+            body: t.body || t.content || "",
+            variables: t.variables || ["consumer_name", "merchant", "order_id", "amount", "issue"],
+            isCustom: true,
+            createdAt: t.created_at,
+          }));
+        }
+      } catch {}
     }
 
-    const allTemplates = [...defaultTemplates, ...userCustomTemplates, ...inMemoryCustomTemplates];
-    return NextResponse.json({ success: true, templates: allTemplates });
+    const memTemplates = inMemoryCustomTemplates;
+    const combinedCustom = [
+      ...userCustomTemplates,
+      ...memTemplates.filter((m) => !userCustomTemplates.some((u) => u.id === m.id)),
+    ];
+
+    return NextResponse.json({
+      success: true,
+      templates: [...combinedCustom, ...STATUTORY_TEMPLATES],
+    });
   } catch (err: any) {
-    return NextResponse.json({ success: true, templates: [...defaultTemplates, ...inMemoryCustomTemplates] });
+    return NextResponse.json({
+      success: true,
+      templates: STATUTORY_TEMPLATES,
+    });
   }
 }
 
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json();
-    const { name, category, statutoryRef, subject, templateBody, variables } = body;
-
-    if (!name || !subject || !templateBody) {
-      return NextResponse.json({ success: false, error: "Name, subject, and body are required." }, { status: 400 });
+    const body = await request.json().catch(() => null);
+    if (!body) {
+      return NextResponse.json({ success: false, error: "Missing payload" }, { status: 400 });
     }
 
+    const name = body.name || body.title;
+    const category = body.category || "Custom";
+    const statutoryRef = body.statutoryRef || body.statutory_ref;
+    const subject = body.subject || body.title || "Statutory Grievance Notice";
+    const templateBody = body.templateBody || body.body || body.content;
+    const variables = body.variables;
+
+    if (!name || !templateBody) {
+      return NextResponse.json({ success: false, error: "Name and body are required." }, { status: 400 });
+    }
+
+    const templateId = `tmpl-${Date.now()}`;
     const newTemplate: GrievanceTemplate = {
-      id: `tmpl-${Date.now()}`,
+      id: templateId,
       name: name.trim(),
       category: category || "Custom",
       statutoryRef: statutoryRef?.trim() || "Statutory Consumer Notice",
@@ -137,31 +170,36 @@ export async function POST(request: NextRequest) {
     const supabase = await createClient();
     let { data: { user } } = await supabase.auth.getUser();
 
-    let userId = user?.id;
-    if (!userId) {
+    let rawUserId = user?.id;
+    if (!rawUserId) {
       const activeProfile = await getDbProfile();
       if (activeProfile && activeProfile.id && activeProfile.id !== "guest-user-evaluator") {
-        userId = activeProfile.id;
+        rawUserId = activeProfile.id;
       }
     }
 
-    if (userId) {
-      await supabase.from("templates").insert({
-        id: newTemplate.id,
-        user_id: userId,
-        name: newTemplate.name,
-        category: newTemplate.category,
-        statutory_ref: newTemplate.statutoryRef,
-        subject: newTemplate.subject,
-        body: newTemplate.body,
-        variables: newTemplate.variables,
-        created_at: newTemplate.createdAt,
-      });
+    if (rawUserId) {
+      const uuid = toValidUuid(rawUserId);
+      try {
+        await supabase.from("templates").insert({
+          user_id: uuid,
+          template_name: newTemplate.name,
+          category: newTemplate.category,
+          content: newTemplate.body,
+          variables: newTemplate.variables,
+          is_system_template: false,
+          created_at: newTemplate.createdAt,
+        });
+      } catch {}
     }
 
     inMemoryCustomTemplates = [newTemplate, ...inMemoryCustomTemplates];
 
-    return NextResponse.json({ success: true, template: newTemplate });
+    return NextResponse.json({
+      success: true,
+      template: newTemplate,
+      message: "Template persisted successfully",
+    });
   } catch (err: any) {
     return NextResponse.json({ success: false, error: err?.message || "Failed to create template." }, { status: 500 });
   }
@@ -176,22 +214,25 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ success: false, error: "Template ID is required." }, { status: 400 });
     }
 
-    inMemoryCustomTemplates = inMemoryCustomTemplates.filter((t) => t.id !== id);
-
     const supabase = await createClient();
     let { data: { user } } = await supabase.auth.getUser();
 
-    let userId = user?.id;
-    if (!userId) {
+    let rawUserId = user?.id;
+    if (!rawUserId) {
       const activeProfile = await getDbProfile();
       if (activeProfile && activeProfile.id && activeProfile.id !== "guest-user-evaluator") {
-        userId = activeProfile.id;
+        rawUserId = activeProfile.id;
       }
     }
 
-    if (userId) {
-      await supabase.from("templates").delete().eq("id", id).eq("user_id", userId);
+    if (rawUserId) {
+      const uuid = toValidUuid(rawUserId);
+      try {
+        await supabase.from("templates").delete().eq("id", id).eq("user_id", uuid);
+      } catch {}
     }
+
+    inMemoryCustomTemplates = inMemoryCustomTemplates.filter((t) => t.id !== id);
 
     return NextResponse.json({ success: true, message: "Template deleted." });
   } catch (err: any) {

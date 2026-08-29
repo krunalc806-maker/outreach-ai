@@ -27,13 +27,23 @@ const GUEST_PROFILE: DbProfile = {
   updated_at: new Date().toISOString(),
 };
 
+const inMemoryProfiles = new Map<string, DbProfile>();
+
+function toValidUuid(id?: string | null): string | null {
+  if (!id) return null;
+  if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)) {
+    return id;
+  }
+  const hex = Buffer.from(id).toString("hex").padEnd(32, "0").slice(0, 32);
+  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-4${hex.slice(13, 16)}-a${hex.slice(17, 20)}-${hex.slice(20, 32)}`;
+}
+
 /**
  * Fetch profile from Supabase 'profiles' table with authenticated user as source of truth
  */
 export async function getDbProfile(userId?: string): Promise<DbProfile> {
   try {
     const supabase = await createClient();
-    let targetUserId = userId;
     let authUser: any = null;
 
     const { data: { user } } = await supabase.auth.getUser();
@@ -53,6 +63,9 @@ export async function getDbProfile(userId?: string): Promise<DbProfile> {
                 full_name: decoded.fullName,
                 name: decoded.fullName,
                 avatar_url: decoded.avatarUrl,
+                role: decoded.role,
+                city: decoded.city || decoded.organization,
+                organization: decoded.organization || decoded.city,
                 is_onboarded: true,
               },
             };
@@ -61,51 +74,67 @@ export async function getDbProfile(userId?: string): Promise<DbProfile> {
       } catch {}
     }
 
-    if (!targetUserId) {
-      if (!authUser) return GUEST_PROFILE;
-      targetUserId = authUser.id;
-    }
-
-    const { data, error } = await supabase
-      .from("profiles")
-      .select("*")
-      .eq("id", targetUserId)
-      .single();
-
-    if (error || !data) {
-      if (authUser && authUser.id === targetUserId) {
-        const metadata = authUser.user_metadata || {};
-        const realName = metadata.full_name || metadata.name || (authUser.email ? authUser.email.split("@")[0] : "Consumer");
-        const realAvatar = metadata.avatar_url || metadata.picture || null;
-        
-        return {
-          id: authUser.id,
-          email: authUser.email || "",
-          full_name: realName,
-          city: metadata.organization || metadata.city || "Not provided",
-          avatar_url: realAvatar,
-          role: metadata.role || "Individual Consumer",
-          primary_objective: metadata.primary_objective || "ECOMMERCE_NDR_REFUND",
-          onboarding_completed: Boolean(metadata.is_onboarded),
-          created_at: authUser.created_at || new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-        };
-      }
+    const finalUserId = userId || authUser?.id;
+    if (!finalUserId) {
       return GUEST_PROFILE;
     }
 
-    return {
-      id: data.id,
-      full_name: data.full_name || (authUser?.email ? authUser.email.split("@")[0] : "Consumer"),
-      email: data.email || authUser?.email || "",
-      city: data.city || "Not provided",
-      avatar_url: data.avatar_url || authUser?.user_metadata?.avatar_url || authUser?.user_metadata?.picture || null,
-      role: data.role || "Individual Consumer",
-      primary_objective: data.primary_objective || "ECOMMERCE_NDR_REFUND",
-      onboarding_completed: Boolean(data.onboarding_completed),
-      created_at: data.created_at,
-      updated_at: data.updated_at,
-    };
+    // Check in-memory store
+    const memProfile = inMemoryProfiles.get(finalUserId) || (authUser?.email ? inMemoryProfiles.get(authUser.email) : null);
+
+    const uuid = toValidUuid(finalUserId);
+
+    let dbProfileData: any = null;
+    if (uuid) {
+      try {
+        const { data } = await supabase
+          .from("profiles")
+          .select("*")
+          .eq("id", uuid)
+          .single();
+        if (data) dbProfileData = data;
+      } catch {}
+    }
+
+    if (dbProfileData) {
+      return {
+        id: finalUserId,
+        full_name: dbProfileData.full_name || (authUser?.email ? authUser.email.split("@")[0] : "Consumer"),
+        email: dbProfileData.email || authUser?.email || "",
+        city: dbProfileData.city || "Not provided",
+        avatar_url: dbProfileData.avatar_url || authUser?.user_metadata?.avatar_url || null,
+        role: dbProfileData.role || "Individual Consumer",
+        primary_objective: dbProfileData.primary_objective || "ECOMMERCE_NDR_REFUND",
+        onboarding_completed: Boolean(dbProfileData.onboarding_completed),
+        created_at: dbProfileData.created_at || new Date().toISOString(),
+        updated_at: dbProfileData.updated_at || new Date().toISOString(),
+      };
+    }
+
+    if (memProfile) {
+      return memProfile;
+    }
+
+    if (authUser && authUser.id === finalUserId) {
+      const metadata = authUser.user_metadata || {};
+      const realName = metadata.full_name || metadata.name || (authUser.email ? authUser.email.split("@")[0] : "Consumer");
+      const realAvatar = metadata.avatar_url || metadata.picture || null;
+
+      return {
+        id: authUser.id,
+        email: authUser.email || "",
+        full_name: realName,
+        city: metadata.organization || metadata.city || "Not provided",
+        avatar_url: realAvatar,
+        role: metadata.role || "Individual Consumer",
+        primary_objective: metadata.primary_objective || "ECOMMERCE_NDR_REFUND",
+        onboarding_completed: Boolean(metadata.is_onboarded),
+        created_at: authUser.created_at || new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      };
+    }
+
+    return GUEST_PROFILE;
   } catch {
     return GUEST_PROFILE;
   }
@@ -117,7 +146,9 @@ export async function getDbProfile(userId?: string): Promise<DbProfile> {
 export async function upsertDbProfile(profile: Partial<DbProfile> & { id: string }): Promise<{ success: boolean; error?: string }> {
   try {
     const supabase = await createClient();
-    const payload = {
+    const uuid = toValidUuid(profile.id);
+
+    const savedProfile: DbProfile = {
       id: profile.id,
       full_name: profile.full_name || "",
       email: profile.email || "",
@@ -126,26 +157,73 @@ export async function upsertDbProfile(profile: Partial<DbProfile> & { id: string
       role: profile.role || "Individual Consumer",
       primary_objective: profile.primary_objective || "ECOMMERCE_NDR_REFUND",
       onboarding_completed: profile.onboarding_completed ?? true,
+      created_at: profile.created_at || new Date().toISOString(),
       updated_at: new Date().toISOString(),
     };
 
-    const { error } = await supabase.from("profiles").upsert(payload, { onConflict: "id" });
-    if (error) {
-      console.warn("[upsertDbProfile Warning]:", error.message);
+    inMemoryProfiles.set(profile.id, savedProfile);
+    if (profile.email) {
+      inMemoryProfiles.set(profile.email, savedProfile);
     }
 
+    if (uuid) {
+      try {
+        await supabase.from("profiles").upsert(
+          {
+            id: uuid,
+            full_name: savedProfile.full_name,
+            email: savedProfile.email,
+            city: savedProfile.city,
+            avatar_url: savedProfile.avatar_url,
+            role: savedProfile.role,
+            primary_objective: savedProfile.primary_objective,
+            onboarding_completed: savedProfile.onboarding_completed,
+            updated_at: savedProfile.updated_at,
+          },
+          { onConflict: "id" }
+        );
+      } catch (err: any) {
+        console.warn("[upsertDbProfile Warning]:", err?.message);
+      }
+    }
+
+    // Update session cookie if available
+    try {
+      const cookieStore = await cookies();
+      const sessionData = {
+        id: savedProfile.id,
+        email: savedProfile.email,
+        fullName: savedProfile.full_name,
+        role: savedProfile.role,
+        city: savedProfile.city,
+        organization: savedProfile.city,
+        avatarUrl: savedProfile.avatar_url,
+      };
+      cookieStore.set({
+        name: "outreachai-user-session",
+        value: Buffer.from(JSON.stringify(sessionData)).toString("base64"),
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "lax",
+        path: "/",
+        maxAge: 60 * 60 * 24 * 7,
+      });
+    } catch {}
+
     // Sync to auth.users metadata
-    await supabase.auth.updateUser({
-      data: {
-        full_name: profile.full_name,
-        role: profile.role,
-        organization: profile.city,
-        city: profile.city,
-        primary_objective: profile.primary_objective,
-        avatar_url: profile.avatar_url,
-        is_onboarded: profile.onboarding_completed ?? true,
-      },
-    }).catch(() => null);
+    try {
+      await supabase.auth.updateUser({
+        data: {
+          full_name: savedProfile.full_name,
+          role: savedProfile.role,
+          organization: savedProfile.city,
+          city: savedProfile.city,
+          primary_objective: savedProfile.primary_objective,
+          avatar_url: savedProfile.avatar_url,
+          is_onboarded: savedProfile.onboarding_completed,
+        },
+      });
+    } catch {}
 
     return { success: true };
   } catch (err: any) {

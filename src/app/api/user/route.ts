@@ -45,7 +45,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
     }
 
-    const result = await upsertDbProfile({
+    const updatedProfile = {
       id: userId,
       email: email || "",
       full_name: body?.fullName || defaultName,
@@ -53,13 +53,27 @@ export async function POST(request: NextRequest) {
       city: body?.organization || "Not provided",
       primary_objective: body?.primaryObjective || "ECOMMERCE_NDR_REFUND",
       onboarding_completed: true,
-    });
+    };
+
+    const result = await upsertDbProfile(updatedProfile);
 
     if (!result.success) {
       return NextResponse.json({ success: false, error: result.error }, { status: 500 });
     }
 
-    return NextResponse.json({ success: true, message: "Profile persisted successfully" });
+    return NextResponse.json({
+      success: true,
+      message: "Profile persisted successfully",
+      user: {
+        id: updatedProfile.id,
+        email: updatedProfile.email,
+        fullName: updatedProfile.full_name,
+        role: updatedProfile.role,
+        organization: updatedProfile.city,
+        primaryObjective: updatedProfile.primary_objective,
+        isOnboarded: updatedProfile.onboarding_completed,
+      },
+    });
   } catch (err: any) {
     return NextResponse.json({ success: false, error: err?.message }, { status: 500 });
   }
