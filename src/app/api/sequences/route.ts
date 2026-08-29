@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { getDbProfile } from "@/lib/db/profiles";
 
 export interface SequenceStep {
   id: string;
@@ -112,14 +113,22 @@ let inMemorySequences: EscalationSequence[] = [...defaultSequences];
 export async function GET(request: NextRequest) {
   try {
     const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
+    let { data: { user } } = await supabase.auth.getUser();
+
+    let userId = user?.id;
+    if (!userId) {
+      const activeProfile = await getDbProfile();
+      if (activeProfile && activeProfile.id && activeProfile.id !== "guest-user-evaluator") {
+        userId = activeProfile.id;
+      }
+    }
 
     let dbSequences: EscalationSequence[] = [];
-    if (user) {
+    if (userId) {
       const { data } = await supabase
         .from("sequences")
         .select("*")
-        .eq("user_id", user.id)
+        .eq("user_id", userId)
         .order("created_at", { ascending: false });
 
       if (data && Array.isArray(data)) {
@@ -176,12 +185,20 @@ export async function POST(request: NextRequest) {
     };
 
     const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
+    let { data: { user } } = await supabase.auth.getUser();
 
-    if (user) {
+    let userId = user?.id;
+    if (!userId) {
+      const activeProfile = await getDbProfile();
+      if (activeProfile && activeProfile.id && activeProfile.id !== "guest-user-evaluator") {
+        userId = activeProfile.id;
+      }
+    }
+
+    if (userId) {
       await supabase.from("sequences").insert({
         id: newSeq.id,
-        user_id: user.id,
+        user_id: userId,
         name: newSeq.name,
         description: newSeq.description,
         status: newSeq.status,
@@ -216,10 +233,18 @@ export async function PATCH(request: NextRequest) {
     );
 
     const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
+    let { data: { user } } = await supabase.auth.getUser();
 
-    if (user) {
-      await supabase.from("sequences").update({ status, updated_at: new Date().toISOString() }).eq("id", id).eq("user_id", user.id);
+    let userId = user?.id;
+    if (!userId) {
+      const activeProfile = await getDbProfile();
+      if (activeProfile && activeProfile.id && activeProfile.id !== "guest-user-evaluator") {
+        userId = activeProfile.id;
+      }
+    }
+
+    if (userId) {
+      await supabase.from("sequences").update({ status, updated_at: new Date().toISOString() }).eq("id", id).eq("user_id", userId);
     }
 
     const updated = inMemorySequences.find((s) => s.id === id);
@@ -241,10 +266,18 @@ export async function DELETE(request: NextRequest) {
     inMemorySequences = inMemorySequences.filter((s) => s.id !== id);
 
     const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
+    let { data: { user } } = await supabase.auth.getUser();
 
-    if (user) {
-      await supabase.from("sequences").delete().eq("id", id).eq("user_id", user.id);
+    let userId = user?.id;
+    if (!userId) {
+      const activeProfile = await getDbProfile();
+      if (activeProfile && activeProfile.id && activeProfile.id !== "guest-user-evaluator") {
+        userId = activeProfile.id;
+      }
+    }
+
+    if (userId) {
+      await supabase.from("sequences").delete().eq("id", id).eq("user_id", userId);
     }
 
     return NextResponse.json({ success: true, message: "Sequence deleted." });
@@ -252,4 +285,3 @@ export async function DELETE(request: NextRequest) {
     return NextResponse.json({ success: false, error: err?.message || "Failed to delete sequence." }, { status: 500 });
   }
 }
-

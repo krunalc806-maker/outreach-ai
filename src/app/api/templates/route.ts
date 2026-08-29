@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { getDbProfile } from "@/lib/db/profiles";
 
 export interface GrievanceTemplate {
   id: string;
@@ -71,15 +72,23 @@ let inMemoryCustomTemplates: GrievanceTemplate[] = [];
 export async function GET(request: NextRequest) {
   try {
     const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
+    let { data: { user } } = await supabase.auth.getUser();
+
+    let userId = user?.id;
+    if (!userId) {
+      const activeProfile = await getDbProfile();
+      if (activeProfile && activeProfile.id && activeProfile.id !== "guest-user-evaluator") {
+        userId = activeProfile.id;
+      }
+    }
 
     let userCustomTemplates: GrievanceTemplate[] = [];
 
-    if (user) {
+    if (userId) {
       const { data } = await supabase
         .from("templates")
         .select("*")
-        .eq("user_id", user.id)
+        .eq("user_id", userId)
         .order("created_at", { ascending: false });
 
       if (data && Array.isArray(data)) {
@@ -126,12 +135,20 @@ export async function POST(request: NextRequest) {
     };
 
     const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
+    let { data: { user } } = await supabase.auth.getUser();
 
-    if (user) {
+    let userId = user?.id;
+    if (!userId) {
+      const activeProfile = await getDbProfile();
+      if (activeProfile && activeProfile.id && activeProfile.id !== "guest-user-evaluator") {
+        userId = activeProfile.id;
+      }
+    }
+
+    if (userId) {
       await supabase.from("templates").insert({
         id: newTemplate.id,
-        user_id: user.id,
+        user_id: userId,
         name: newTemplate.name,
         category: newTemplate.category,
         statutory_ref: newTemplate.statutoryRef,
@@ -162,10 +179,18 @@ export async function DELETE(request: NextRequest) {
     inMemoryCustomTemplates = inMemoryCustomTemplates.filter((t) => t.id !== id);
 
     const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
+    let { data: { user } } = await supabase.auth.getUser();
 
-    if (user) {
-      await supabase.from("templates").delete().eq("id", id).eq("user_id", user.id);
+    let userId = user?.id;
+    if (!userId) {
+      const activeProfile = await getDbProfile();
+      if (activeProfile && activeProfile.id && activeProfile.id !== "guest-user-evaluator") {
+        userId = activeProfile.id;
+      }
+    }
+
+    if (userId) {
+      await supabase.from("templates").delete().eq("id", id).eq("user_id", userId);
     }
 
     return NextResponse.json({ success: true, message: "Template deleted." });
@@ -173,4 +198,3 @@ export async function DELETE(request: NextRequest) {
     return NextResponse.json({ success: false, error: err?.message || "Failed to delete template." }, { status: 500 });
   }
 }
-

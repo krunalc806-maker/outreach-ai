@@ -1,13 +1,22 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createDbCampaign, getDbOutreachSnapshot } from "@/lib/db/campaigns";
 import { createClient } from "@/lib/supabase/server";
+import { getDbProfile } from "@/lib/db/profiles";
 
 export async function GET(request: NextRequest) {
   try {
     const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
+    let { data: { user } } = await supabase.auth.getUser();
 
-    const snapshot = await getDbOutreachSnapshot(user?.id);
+    let userId = user?.id;
+    if (!userId) {
+      const activeProfile = await getDbProfile();
+      if (activeProfile && activeProfile.id && activeProfile.id !== "guest-user-evaluator") {
+        userId = activeProfile.id;
+      }
+    }
+
+    const snapshot = await getDbOutreachSnapshot(userId);
     return NextResponse.json({
       success: true,
       campaigns: snapshot.campaigns,
@@ -29,13 +38,21 @@ export async function POST(request: NextRequest) {
     }
 
     const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
+    let { data: { user } } = await supabase.auth.getUser();
+
+    let userId = user?.id;
+    if (!userId) {
+      const activeProfile = await getDbProfile();
+      if (activeProfile && activeProfile.id && activeProfile.id !== "guest-user-evaluator") {
+        userId = activeProfile.id;
+      }
+    }
 
     const result = await createDbCampaign({
       name: body.name,
       objective: body.objective,
       audience: body.audience,
-      userId: user?.id,
+      userId: userId,
     });
 
     if (!result.success) {

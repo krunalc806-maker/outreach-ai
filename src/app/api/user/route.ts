@@ -26,19 +26,29 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json().catch(() => null);
     const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
+    let { data: { user } } = await supabase.auth.getUser();
+
+    let userId = user?.id;
+    let email = user?.email;
+    let defaultName = user?.user_metadata?.full_name || "Consumer";
 
     if (!user) {
+      const activeProfile = await getDbProfile();
+      if (activeProfile && activeProfile.id && activeProfile.id !== "guest-user-evaluator") {
+        userId = activeProfile.id;
+        email = activeProfile.email;
+        defaultName = activeProfile.full_name;
+      }
+    }
+
+    if (!userId) {
       return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
     }
 
-    const userId = user.id;
-    const email = user.email || "";
-
     const result = await upsertDbProfile({
       id: userId,
-      email,
-      full_name: body?.fullName || user.user_metadata?.full_name || "Consumer",
+      email: email || "",
+      full_name: body?.fullName || defaultName,
       role: body?.role || "Individual Consumer",
       city: body?.organization || "Not provided",
       primary_objective: body?.primaryObjective || "ECOMMERCE_NDR_REFUND",
