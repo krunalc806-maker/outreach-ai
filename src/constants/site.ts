@@ -36,8 +36,7 @@ export const NAV_LINKS = [
 
 export const SOCIAL_LINKS = {
   github: "https://github.com/krunalc806-maker/outreach-ai",
-  linkedin: "https://www.linkedin.com",
-  twitter: "https://x.com",
+  linkedin: "https://www.linkedin.com/in/krunal-chavda-54274138a",
 };
 
 export const PRICING = [
