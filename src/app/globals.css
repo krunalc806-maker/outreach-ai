@@ -5,10 +5,10 @@
   --foreground: #f9fafb;
   --surface: #12141c;
   --surface-border: #1e2230;
-  --brand: #7c3aed;
-  --brand-hover: #6d28d9;
-  --brand-soft: rgba(124, 58, 237, 0.16);
-  --brand-accent: #a78bfa;
+  --brand: #f97316;
+  --brand-hover: #ea580c;
+  --brand-soft: rgba(249, 115, 22, 0.16);
+  --brand-accent: #fdba74;
   --text-muted: #9ca3af;
   --status-resolved: #10b981;
   --status-pending: #f59e0b;
@@ -38,12 +38,12 @@ body {
 }
 
 ::selection {
-  background: rgba(124, 58, 237, 0.35);
+  background: rgba(249, 115, 22, 0.35);
   color: #ffffff;
 }
 
 :focus-visible {
-  outline: 2px solid #7c3aed;
+  outline: 2px solid #f97316;
   outline-offset: 2px;
 }
 
@@ -63,8 +63,14 @@ body {
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(124, 58, 237, 0.45);
+  background: rgba(249, 115, 22, 0.45);
 }
+
+.omnexa-orbit { position: relative; display: inline-block; width: 2.25rem; height: 2.25rem; border-radius: 9999px; border: 1px solid rgba(249,115,22,.22); background: radial-gradient(circle, rgba(249,115,22,.24), transparent 62%); animation: omnexa-spin 4s linear infinite; }
+.omnexa-orbit::after { content: ""; position: absolute; inset: .7rem; border-radius: inherit; background: #fb923c; box-shadow: 0 0 16px rgba(249,115,22,.8); }
+.omnexa-orbit i { position: absolute; width: .32rem; height: .32rem; border-radius: 9999px; background: #fed7aa; box-shadow: 0 0 8px #fb923c; }
+.omnexa-orbit i:nth-child(1) { top: -.13rem; left: 50%; }.omnexa-orbit i:nth-child(2) { right: -.13rem; top: 50%; }.omnexa-orbit i:nth-child(3) { left: -.13rem; top: 50%; }
+@keyframes omnexa-spin { to { transform: rotate(360deg); } }
 
 @media (prefers-reduced-motion: reduce) {
   *,

@@ -9,6 +9,7 @@ import ChatEmptyState from "./ChatEmptyState";
 import ChatMessageBubble from "./ChatMessage";
 import ChatSidebar from "./ChatSidebar";
 import ChatSkeleton from "./ChatSkeleton";
+import AiThinkingIndicator from "./AiThinkingIndicator";
 import { deleteConversation as deleteConversationRequest, fetchConversations, renameConversation as renameConversationRequest, streamChatMessage, toggleConversationPin as togglePinRequest } from "@/lib/chat/client";
 import type { ChatAttachment, ChatConversation, ChatMessage as ChatMessageType, ChatModel, ChatStatus } from "@/types/chat";
 
@@ -35,6 +36,7 @@ export default function ChatPage() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [isHydrated, setIsHydrated] = useState(false);
   const composerRef = useRef<HTMLTextAreaElement>(null);
+  const abortControllerRef = useRef<AbortController | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const activeConversation = useMemo(() => conversations.find((conversation) => conversation.id === activeConversationId) ?? null, [activeConversationId, conversations]);
 
@@ -96,11 +98,14 @@ export default function ChatPage() {
     setError(null);
 
     try {
+      const abortController = new AbortController();
+      abortControllerRef.current = abortController;
       await streamChatMessage({
         content,
         attachments,
         conversationId: optimisticConversation.id,
         model,
+        signal: abortController.signal,
         onEvent: ({ event, payload }) => {
           if (event === "assistant_delta" && payload && typeof payload === "object") {
             const nextPayload = payload as { messageId?: string; delta?: string };
@@ -133,13 +138,15 @@ export default function ChatPage() {
         },
       });
     } catch (requestError) {
+      if (requestError instanceof DOMException && requestError.name === "AbortError") return;
       const message = requestError instanceof Error ? requestError.message : "The chat request failed.";
       setStatus("error");
       setError(message);
-    }
+    } finally { abortControllerRef.current = null; }
   }
 
   function handleStop() {
+    abortControllerRef.current?.abort();
     setStatus("idle");
   }
 
@@ -163,14 +170,7 @@ export default function ChatPage() {
             <>
               {activeConversation.messages.map((message) => <ChatMessageBubble key={message.id} message={message} onRegenerate={() => setError("Connect a provider adapter to regenerate responses.")} />)}
               {status === "streaming" ? (
-                <div className="mx-auto flex max-w-3xl items-center gap-2 px-8 py-3 text-xs text-zinc-400">
-                  <span className="flex gap-1">
-                    <i className="h-1.5 w-1.5 animate-bounce rounded-full bg-[#8b5cf6]" />
-                    <i className="h-1.5 w-1.5 animate-bounce rounded-full bg-[#8b5cf6] [animation-delay:120ms]" />
-                    <i className="h-1.5 w-1.5 animate-bounce rounded-full bg-[#8b5cf6] [animation-delay:240ms]" />
-                  </span>
-                  <span>Agent Reasoning…</span>
-                </div>
+                <AiThinkingIndicator />
               ) : null}
             </>
           ) : <ChatEmptyState onFocusComposer={() => composerRef.current?.focus()} />}

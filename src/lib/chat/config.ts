@@ -31,6 +31,13 @@ export interface ActiveAiConfig {
   model: string;
 }
 
+/** UI choices are aliases, never provider model identifiers. */
+export function resolveChatModelSelection(selection?: string): { provider: ProviderType; model: string } {
+  const provider: ProviderType = selection === "fast" ? "gemini" : selection === "reasoning" ? "openrouter" : "nvidia";
+  const config = getAiConfig(provider);
+  return { provider: config.provider, model: config.model };
+}
+
 export function getNvidiaConfig() {
   const parsed = envSchema.safeParse(process.env);
   if (!parsed.success) {

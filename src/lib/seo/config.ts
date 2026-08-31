@@ -26,6 +26,7 @@ export const SEO_DEFAULTS = {
     "AI agent for complaint resolution",
   ],
   locale: "en_IN",
+  googleVerification: "PSzHgsTOpFGz9UGZd2wB9P6LWCLkiWu-Z_vHjYwuV3Q",
 };
 
 export function constructMetadata({
@@ -53,6 +54,9 @@ export function constructMetadata({
     keywords: metaKeywords,
     alternates: {
       canonical: canonicalUrl,
+    },
+    verification: {
+      google: SEO_DEFAULTS.googleVerification,
     },
     robots: {
       index: !noIndex,
@@ -146,4 +150,3 @@ export function generateBreadcrumbSchema(items: { name: string; url: string }[])
     })),
   };
 }
-

@@ -1,4 +1,15 @@
-import { Fragment } from "react";
+"use client";
+
+import { Fragment, useState } from "react";
+import { Check, Copy } from "lucide-react";
+
+function CodeBlock({ code, language }: { code: string; language?: string }) {
+  const [copied, setCopied] = useState(false);
+  const copy = async () => {
+    try { await navigator.clipboard.writeText(code); setCopied(true); window.setTimeout(() => setCopied(false), 1600); } catch { setCopied(false); }
+  };
+  return <pre className="relative overflow-x-auto rounded-2xl border border-white/10 bg-zinc-950 p-4 pr-12 text-sm leading-6"><button type="button" onClick={copy} aria-label="Copy code" className="absolute right-2 top-2 rounded-lg p-1.5 text-zinc-400 hover:bg-white/10 hover:text-white">{copied ? <Check size={14} className="text-emerald-400" /> : <Copy size={14} />}</button><code>{highlightCode(code.trim(), language)}</code></pre>;
+}
 
 function renderInline(value: string) {
   const parts = value.split(/(`[^`]+`|\*\*[^*]+\*\*|\[[^\]]+\]\([^\s)]+\))/g);
@@ -50,12 +61,15 @@ export default function MarkdownRenderer({ content }: { content: string }) {
         const codeMatch = block.match(/^```(\w+)?\n?([\s\S]*?)```$/);
         if (codeMatch) {
           const [, language, code] = codeMatch;
-          return <pre key={blockIndex} className="overflow-x-auto rounded-2xl border border-white/10 bg-zinc-950 p-4 text-sm leading-6"><code>{highlightCode(code.trim(), language)}</code></pre>;
+          return <CodeBlock key={blockIndex} code={code} language={language} />;
         }
 
         return block.split(/\n\n+/).filter(Boolean).map((paragraph, paragraphIndex) => {
           const isHeading = paragraph.startsWith("### ") || paragraph.startsWith("## ") || paragraph.startsWith("# ");
           const isList = paragraph.split("\n").every((line) => /^[-*] /.test(line));
+          const isQuote = paragraph.split("\n").every((line) => /^> /.test(line));
+          const lines = paragraph.split("\n");
+          const isTable = lines.length >= 2 && /^\|.*\|$/.test(lines[0]) && /^\|?\s*:?-{3,}/.test(lines[1]);
 
           if (isHeading) {
             return <h3 key={`${blockIndex}-${paragraphIndex}`} className="text-lg font-semibold text-white">{renderInline(paragraph.replace(/^#{1,3} /, ""))}</h3>;
@@ -63,6 +77,14 @@ export default function MarkdownRenderer({ content }: { content: string }) {
 
           if (isList) {
             return <ul key={`${blockIndex}-${paragraphIndex}`} className="space-y-1 pl-5 marker:text-violet-400">{paragraph.split("\n").map((line, index) => <li key={index}>{renderInline(line.replace(/^[-*] /, ""))}</li>)}</ul>;
+          }
+
+          if (isQuote) return <blockquote key={`${blockIndex}-${paragraphIndex}`} className="border-l-2 border-orange-400/70 pl-4 text-zinc-300">{lines.map((line, index) => <p key={index}>{renderInline(line.replace(/^> /, ""))}</p>)}</blockquote>;
+
+          if (isTable) {
+            const cells = (line: string) => line.replace(/^\||\|$/g, "").split("|").map((cell) => cell.trim());
+            const headers = cells(lines[0]); const rows = lines.slice(2).filter((line) => /^\|.*\|$/.test(line));
+            return <div key={`${blockIndex}-${paragraphIndex}`} className="overflow-x-auto rounded-xl border border-white/10"><table className="min-w-full text-left text-sm"><thead className="bg-white/5"><tr>{headers.map((header, index) => <th key={index} className="px-3 py-2 font-semibold text-white">{renderInline(header)}</th>)}</tr></thead><tbody>{rows.map((row, rowIndex) => <tr key={rowIndex} className="border-t border-white/10">{cells(row).map((cell, index) => <td key={index} className="px-3 py-2 text-zinc-300">{renderInline(cell)}</td>)}</tr>)}</tbody></table></div>;
           }
 
           return <p key={`${blockIndex}-${paragraphIndex}`} className="whitespace-pre-wrap">{renderInline(paragraph)}</p>;

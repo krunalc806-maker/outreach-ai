@@ -3,6 +3,7 @@ import { z } from "zod";
 
 import { isRateLimited } from "@/lib/chat/rate-limit";
 import { streamAiCompletion } from "@/lib/chat/provider";
+import { resolveChatModelSelection } from "@/lib/chat/config";
 import { deleteConversation, getConversationById, listConversations, saveConversation, searchConversations } from "@/lib/chat/storage";
 import type { ChatAttachment, ChatConversation, ChatMessage } from "@/types/chat";
 
@@ -101,14 +102,13 @@ async function handleSend(req: NextRequest) {
         let assistantContent = "";
         let usage: { promptTokens?: number; completionTokens?: number; totalTokens?: number } | undefined;
         try {
-          const providerChoice: "nvidia" | "openrouter" | "gemini" =
-            model === "fast" ? "gemini" : model === "reasoning" ? "openrouter" : "nvidia";
+          const modelSelection = resolveChatModelSelection(model);
 
           for await (const chunk of streamAiCompletion({
             prompt: trimmedContent,
             attachments: attachments.map((attachment) => ({ name: attachment.name, kind: attachment.kind ?? "file" })),
-            model,
-            provider: providerChoice,
+            model: modelSelection.model,
+            provider: modelSelection.provider,
             signal: requestAbort.signal,
           })) {
             if (requestAbort.signal.aborted) {
@@ -123,7 +123,8 @@ async function handleSend(req: NextRequest) {
             }
           }
         } catch (error) {
-          const message = error instanceof Error ? error.message : "The AI response could not be completed.";
+          console.error("[chat:stream]", error);
+          const message = "The AI provider could not complete this response. Please try again shortly.";
           const failureConversation: ChatConversation = {
             ...updatedConversation,
             updatedAt: new Date().toISOString(),
@@ -145,7 +146,8 @@ async function handleSend(req: NextRequest) {
         sendEvent("assistant_complete", { conversation: finalConversation, usage });
         controller.close();
       } catch (error) {
-        const message = error instanceof Error ? error.message : "The AI request could not be completed.";
+        console.error("[chat:request]", error);
+        const message = "The chat request could not be completed. Please try again.";
         sendEvent("error", { message });
         controller.close();
       }

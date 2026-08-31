@@ -1,6 +1,6 @@
 "use client";
 
-import { ChangeEvent, KeyboardEvent, RefObject, useRef, useState } from "react";
+import { KeyboardEvent, RefObject, useState } from "react";
 import { ImagePlus, Paperclip, Send, Square, X } from "lucide-react";
 
 import type { ChatAttachment, ChatModel, ChatStatus } from "@/types/chat";
@@ -13,16 +13,10 @@ interface ChatComposerProps {
   onStop: () => void;
 }
 
-function toAttachment(file: File): ChatAttachment {
-  return { id: crypto.randomUUID(), name: file.name, type: file.type, size: file.size, kind: file.type.startsWith("image/") ? "image" : "file" };
-}
-
 export default function ChatComposer({ models, status, inputRef, onSend, onStop }: ChatComposerProps) {
   const [content, setContent] = useState("");
   const [attachments, setAttachments] = useState<ChatAttachment[]>([]);
   const [model, setModel] = useState(models[0]?.id ?? "default");
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const imageInputRef = useRef<HTMLInputElement>(null);
   const isBusy = status === "loading" || status === "streaming";
 
   function submit() {
@@ -38,12 +32,6 @@ export default function ChatComposer({ models, status, inputRef, onSend, onStop 
       event.preventDefault();
       submit();
     }
-  }
-
-  function addFiles(event: ChangeEvent<HTMLInputElement>) {
-    const files = Array.from(event.target.files ?? []);
-    setAttachments((current) => [...current, ...files.map(toAttachment)]);
-    event.target.value = "";
   }
 
   return (
@@ -65,10 +53,8 @@ export default function ChatComposer({ models, status, inputRef, onSend, onStop 
           <textarea ref={inputRef} value={content} onChange={(event) => setContent(event.target.value)} onKeyDown={handleKeyDown} rows={2} placeholder="Message OutreachAI..." aria-label="Chat message" className="max-h-44 min-h-12 w-full resize-none bg-transparent px-3 py-1.5 text-xs sm:text-sm text-white outline-none placeholder:text-zinc-500" />
           <div className="flex items-center justify-between gap-2 px-1 pb-1">
             <div className="flex items-center gap-1">
-              <input ref={fileInputRef} type="file" multiple onChange={addFiles} className="sr-only" />
-              <input ref={imageInputRef} type="file" accept="image/*" multiple onChange={addFiles} className="sr-only" />
-              <button type="button" onClick={() => fileInputRef.current?.click()} aria-label="Attach files" className="rounded-lg p-1.5 text-zinc-400 transition hover:bg-white/5 hover:text-white"><Paperclip size={16} /></button>
-              <button type="button" onClick={() => imageInputRef.current?.click()} aria-label="Attach images" className="rounded-lg p-1.5 text-zinc-400 transition hover:bg-white/5 hover:text-white"><ImagePlus size={16} /></button>
+              <button type="button" disabled title="Document context becomes available after document processing is configured." aria-label="Document attachments unavailable" className="rounded-lg p-1.5 text-zinc-600 disabled:cursor-not-allowed"><Paperclip size={16} /></button>
+              <button type="button" disabled title="Vision processing is not configured for chat yet." aria-label="Image analysis unavailable" className="rounded-lg p-1.5 text-zinc-600 disabled:cursor-not-allowed"><ImagePlus size={16} /></button>
               <label className="sr-only" htmlFor="chat-model">Model</label>
               <select id="chat-model" value={model} onChange={(event) => setModel(event.target.value)} className="max-w-32 rounded-lg bg-transparent px-2 py-1 text-xs font-semibold text-zinc-300 outline-none hover:bg-white/5">
                 {models.map((item) => <option key={item.id} value={item.id} className="bg-zinc-900 text-white">{item.label}</option>)}
@@ -79,7 +65,7 @@ export default function ChatComposer({ models, status, inputRef, onSend, onStop 
                 <Square size={12} fill="currentColor" />Stop
               </button>
             ) : (
-              <button type="button" onClick={submit} disabled={!content.trim()} aria-label="Send message" className="flex h-8 w-8 items-center justify-center rounded-xl bg-[#8b5cf6] text-white transition hover:bg-[#7c3aed] active:scale-95 disabled:cursor-not-allowed disabled:opacity-40">
+              <button type="button" onClick={submit} disabled={!content.trim()} aria-label="Send message" className="flex h-8 w-8 items-center justify-center rounded-xl bg-orange-500 text-white transition hover:bg-orange-400 active:scale-95 disabled:cursor-not-allowed disabled:opacity-40">
                 <Send size={15} />
               </button>
             )}
