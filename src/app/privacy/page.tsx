@@ -2,22 +2,29 @@ import Container from "@/components/layout/Container";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
 import { SUPPORT_EMAIL, SITE } from "@/constants/site";
+import { constructMetadata } from "@/lib/seo/config";
+
+export const metadata = constructMetadata({
+  title: "Privacy Policy & Security Standards — OutreachAI",
+  description: "Learn how OutreachAI protects your identity, case evidence, and banking authorization tokens with bank-grade encryption and strict user isolation.",
+  path: "/privacy",
+});
 
 export default function PrivacyPage() {
   return (
-    <main className="min-h-screen bg-[#08080a] text-white">
+    <main className="min-h-screen bg-[#08090d] text-white">
       <Navbar />
       <Container className="py-20 max-w-4xl">
         <div className="space-y-8">
           <div>
-            <span className="rounded-full border border-[#d4ff32]/30 bg-[#d4ff32]/10 px-3.5 py-1 text-xs font-semibold text-[#d4ff32] uppercase">
+            <span className="rounded-full border border-[#8b5cf6]/30 bg-[#8b5cf6]/10 px-3.5 py-1 text-xs font-semibold text-[#a78bfa] uppercase font-mono">
               DATA PRIVACY & SECURITY
             </span>
             <h1 className="mt-4 text-3xl sm:text-4xl font-extrabold text-white">Privacy Policy</h1>
             <p className="mt-2 text-xs text-zinc-400 font-mono">Last Updated: February 2026</p>
           </div>
 
-          <div className="space-y-6 text-xs sm:text-sm text-zinc-300 leading-relaxed rounded-3xl border border-white/10 bg-[#0d0d12] p-6 sm:p-10">
+          <div className="space-y-6 text-xs sm:text-sm text-zinc-300 leading-relaxed rounded-3xl border border-white/10 bg-[#0d1017] p-6 sm:p-10 shadow-xl">
             <section className="space-y-2">
               <h2 className="text-base font-bold text-white">1. Information We Collect</h2>
               <p className="text-zinc-400">
@@ -46,7 +53,7 @@ export default function PrivacyPage() {
               </p>
               <a
                 href={`mailto:${SUPPORT_EMAIL}`}
-                className="inline-flex items-center gap-2 text-[#d4ff32] font-semibold underline underline-offset-4 hover:text-[#bbf426]"
+                className="inline-flex items-center gap-2 text-[#a78bfa] font-semibold underline underline-offset-4 hover:text-[#c4b5fd]"
               >
                 {SUPPORT_EMAIL}
               </a>
@@ -58,4 +65,3 @@ export default function PrivacyPage() {
     </main>
   );
 }
-

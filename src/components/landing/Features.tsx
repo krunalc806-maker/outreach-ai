@@ -1,6 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
+import Link from "next/link";
 import {
   Truck,
   IndianRupee,
@@ -8,6 +9,7 @@ import {
   ShieldCheck,
   Workflow,
   BarChart3,
+  ArrowRight,
 } from "lucide-react";
 import Container from "@/components/layout/Container";
 
@@ -61,13 +63,13 @@ export default function Features() {
           viewport={{ once: true }}
           className="mx-auto max-w-2xl text-center space-y-3"
         >
-          <span className="rounded-full border border-[#d4ff32]/30 bg-[#d4ff32]/10 px-3.5 py-1 text-xs font-semibold uppercase tracking-wider text-[#d4ff32]">
+          <span className="rounded-full border border-[#8b5cf6]/30 bg-[#8b5cf6]/10 px-3.5 py-1 text-xs font-semibold uppercase tracking-wider text-[#a78bfa]">
             AGENTIC INFRASTRUCTURE
           </span>
 
           <h2 className="text-3xl font-extrabold text-white sm:text-4xl tracking-tight">
             Real Rails That Remove Work <br />
-            <span className="text-[#d4ff32]">
+            <span className="text-[#a78bfa]">
               From Indian Consumers
             </span>
           </h2>
@@ -84,9 +86,9 @@ export default function Features() {
             return (
               <div
                 key={feature.title}
-                className="rounded-3xl border border-white/10 bg-[#0d0d12] p-6 space-y-3 transition hover:border-[#d4ff32]/40"
+                className="rounded-3xl border border-white/10 bg-[#0d1017] p-6 space-y-3 transition hover:border-[#8b5cf6]/40"
               >
-                <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[#121216] text-[#d4ff32] border border-white/10">
+                <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-white/5 text-[#a78bfa] border border-white/10">
                   <Icon size={20} />
                 </div>
 
@@ -100,6 +102,15 @@ export default function Features() {
               </div>
             );
           })}
+        </div>
+
+        <div className="mt-10 text-center">
+          <Link
+            href="/features"
+            className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#a78bfa] hover:underline"
+          >
+            <span>Learn more about our multi-rail architecture →</span>
+          </Link>
         </div>
       </Container>
     </section>

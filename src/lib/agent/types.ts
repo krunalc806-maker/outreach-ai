@@ -26,11 +26,13 @@ export interface MissingContextField {
 }
 
 export interface ExtractedEntities {
+  customerName?: string;
   merchant?: string;
   orderId?: string;
   awbNumber?: string;
   transactionId?: string;
   amount?: number;
+  pendingDuration?: string;
   incidentDate?: string;
   issueCategory?: "DELIVERY_NDR" | "REFUND_DELAY" | "CANCELLATION" | "DAMAGED_ITEM" | "OVERCHARGE" | "SERVICE_FAILURE";
   preferredResolution?: string;
@@ -75,7 +77,7 @@ export interface CaseAuditEntry {
   phase: string;
   title: string;
   detail: string;
-  rail?: "delhivery" | "pine_labs" | "gnani" | "communication";
+  rail?: "delhivery" | "pine_labs" | "gnani" | "communication" | "internal";
   mode: RailIntegrationMode;
   status: "SUCCESS" | "INFO" | "WARNING" | "CRITICAL";
 }
@@ -120,4 +122,3 @@ export interface AgentCase {
   followUp: FollowUpState;
   resolution?: CaseResolution;
 }
-

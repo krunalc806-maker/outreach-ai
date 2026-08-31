@@ -102,7 +102,8 @@ export async function POST(request: NextRequest) {
     }
 
     if (!rawUserId) {
-      return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
+      // Support public inbound inquiry lead capture
+      rawUserId = "inbound-public-inquiry";
     }
 
     const uuid = toValidUuid(rawUserId);
@@ -112,10 +113,10 @@ export async function POST(request: NextRequest) {
       id: leadId,
       user_id: rawUserId,
       company_name: companyName,
-      category: body.category || "E-Commerce",
+      category: body.category || "Inbound Lead",
       contact_email: body.contact_email || body.email || null,
       contact_phone: body.contact_phone || body.phone || null,
-      pipeline_stage: body.pipeline_stage || body.stage || "New",
+      pipeline_stage: body.pipeline_stage || body.stage || "New Inbound Inquiry",
       resolution_rate: body.resolution_rate || 90.0,
       notes: body.notes || "",
       created_at: new Date().toISOString(),

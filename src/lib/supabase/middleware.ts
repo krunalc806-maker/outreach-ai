@@ -9,8 +9,14 @@ const PUBLIC_ROUTES = new Set([
   "/auth/confirm",
   "/demo",
   "/evidence",
+  "/features",
+  "/use-cases",
+  "/contact",
+  "/blog",
   "/privacy",
   "/terms",
+  "/sitemap.xml",
+  "/robots.txt",
 ]);
 
 function getSupabaseConfig() {
@@ -46,11 +52,14 @@ export async function updateSession(request: NextRequest) {
   const { data: claimsResult } = await supabase.auth.getClaims();
   const userId = claimsResult?.claims?.sub;
   const pathname = request.nextUrl.pathname;
-  const isPublicRoute = PUBLIC_ROUTES.has(pathname) || pathname.startsWith("/_next") || pathname.startsWith("/api");
+  const isPublicRoute =
+    PUBLIC_ROUTES.has(pathname) ||
+    pathname.startsWith("/blog/") ||
+    pathname.startsWith("/_next") ||
+    pathname.startsWith("/api");
 
   // In demo / prototype mode: Allow smooth navigation while ensuring session security
   if (!userId && !isPublicRoute) {
-    // If running in development without a live session, redirect to login
     const loginUrl = request.nextUrl.clone();
     loginUrl.pathname = "/login";
     loginUrl.searchParams.set("next", pathname);

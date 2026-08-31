@@ -26,19 +26,34 @@ export default function Footer() {
           {/* Platform Navigation */}
           <div>
             <h3 className="mb-3.5 text-xs font-bold uppercase tracking-wider text-white">
-              Platform
+              Platform & Features
             </h3>
             <ul className="space-y-2 text-xs">
-              {NAV_LINKS.map((item) => (
-                <li key={item.label}>
-                  <Link
-                    href={item.href}
-                    className="text-zinc-400 transition hover:text-white"
-                  >
-                    {item.label}
-                  </Link>
-                </li>
-              ))}
+              <li>
+                <Link href="/features" className="text-zinc-400 transition hover:text-white">
+                  Autonomous Rails
+                </Link>
+              </li>
+              <li>
+                <Link href="/use-cases" className="text-zinc-400 transition hover:text-white">
+                  Real Use Cases
+                </Link>
+              </li>
+              <li>
+                <Link href="/demo" className="text-zinc-400 transition hover:text-white">
+                  3-Min Case Demo
+                </Link>
+              </li>
+              <li>
+                <Link href="/evidence" className="text-zinc-400 transition hover:text-white">
+                  Evidence & Architecture
+                </Link>
+              </li>
+              <li>
+                <Link href="/blog" className="text-zinc-400 transition hover:text-white">
+                  Guides & Research Hub
+                </Link>
+              </li>
               <li>
                 <Link
                   href="/dashboard"
@@ -50,10 +65,10 @@ export default function Footer() {
             </ul>
           </div>
 
-          {/* Infrastructure Rails */}
+          {/* Integrated Rails */}
           <div>
             <h3 className="mb-3.5 text-xs font-bold uppercase tracking-wider text-white">
-              Integrated Rails
+              Connected Rails
             </h3>
             <ul className="space-y-2 text-xs text-zinc-400">
               <li>Delhivery Logistics Rail</li>
@@ -61,26 +76,36 @@ export default function Footer() {
               <li>Gnani Indic Voice AI</li>
               <li>Consumer Protection Act (2019)</li>
               <li>NPCI UPI Settlement Validation</li>
+              <li>DGCA Passenger Charter (CAR)</li>
             </ul>
           </div>
 
           {/* Contact & Support */}
           <div>
             <h3 className="mb-3.5 text-xs font-bold uppercase tracking-wider text-white">
-              Contact & Support
+              Contact & Inquiries
             </h3>
             <div className="space-y-3 text-xs">
               <p className="text-zinc-400">
                 For competition evaluations, partner desks, and consumer inquiries:
               </p>
-              <a
-                href={`mailto:${SUPPORT_EMAIL}`}
-                className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs font-medium text-zinc-200 transition hover:border-[#8b5cf6]/50 hover:bg-[#8b5cf6]/10 hover:text-white"
-                aria-label={`Send email to ${SUPPORT_EMAIL}`}
-              >
-                <Mail size={13} className="text-[#a78bfa]" />
-                <span className="font-mono">{SUPPORT_EMAIL}</span>
-              </a>
+              <div className="flex flex-col gap-2">
+                <a
+                  href={`mailto:${SUPPORT_EMAIL}`}
+                  className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs font-medium text-zinc-200 transition hover:border-[#8b5cf6]/50 hover:bg-[#8b5cf6]/10 hover:text-white"
+                  aria-label={`Send email to ${SUPPORT_EMAIL}`}
+                >
+                  <Mail size={13} className="text-[#a78bfa]" />
+                  <span className="font-mono">{SUPPORT_EMAIL}</span>
+                </a>
+                <Link
+                  href="/contact"
+                  className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs font-medium text-zinc-200 transition hover:border-[#8b5cf6]/50 hover:bg-[#8b5cf6]/10 hover:text-white"
+                >
+                  <Sparkles size={13} className="text-emerald-400" />
+                  <span>Request Demo / Contact Form</span>
+                </Link>
+              </div>
               <div className="flex flex-wrap items-center gap-3 pt-1 text-xs">
                 <a
                   href={SOCIAL_LINKS.github}

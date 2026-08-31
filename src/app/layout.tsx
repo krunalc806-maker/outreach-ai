@@ -1,19 +1,39 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import "./globals.css";
+import { constructMetadata, generateOrganizationSchema, generateWebsiteSchema } from "@/lib/seo/config";
 
-export const metadata: Metadata = {
-  title: "OutreachAI — Autonomous AI Agent for Consumer Dispute Resolution",
-  description: "Autonomous AI agent engineered for Indian consumer disputes, logistics NDR overrides, and verified payment resolutions.",
+export const viewport: Viewport = {
+  themeColor: "#08090d",
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 5,
 };
+
+export const metadata: Metadata = constructMetadata();
 
 export default function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const orgSchema = generateOrganizationSchema();
+  const webSchema = generateWebsiteSchema();
+
   return (
     <html lang="en" className="h-full antialiased bg-[#08090d] text-zinc-100">
-      <body className="min-h-full flex flex-col">{children}</body>
+      <head>
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(orgSchema) }}
+        />
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(webSchema) }}
+        />
+      </head>
+      <body className="min-h-full flex flex-col selection:bg-[#8b5cf6]/30 selection:text-white font-sans">
+        {children}
+      </body>
     </html>
   );
 }

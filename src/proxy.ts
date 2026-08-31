@@ -8,9 +8,15 @@ const PUBLIC_PATHS = new Set([
   "/auth/confirm",
   "/demo",
   "/evidence",
+  "/features",
+  "/use-cases",
+  "/contact",
+  "/blog",
   "/privacy",
   "/terms",
   "/favicon.ico",
+  "/sitemap.xml",
+  "/robots.txt",
 ]);
 
 function hasValidSupabaseSession(cookies: { name: string; value: string }[]): boolean {
@@ -63,8 +69,8 @@ export function proxy(request: NextRequest) {
     return NextResponse.redirect(dashboardUrl);
   }
 
-  // 4. If public path, allow access
-  if (PUBLIC_PATHS.has(pathname)) {
+  // 4. If public path or blog article, allow access
+  if (PUBLIC_PATHS.has(pathname) || pathname.startsWith("/blog/")) {
     return NextResponse.next();
   }
 

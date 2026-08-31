@@ -30,7 +30,7 @@ const steps = [
 
 export default function HowItWorks() {
   return (
-    <section className="relative bg-[#08080a] py-20 sm:py-28 border-t border-white/5">
+    <section id="how-it-works" className="relative bg-[#08080a] py-20 sm:py-28 border-t border-white/5">
       <Container>
         <motion.div
           initial={{ opacity: 0, y: 15 }}
@@ -39,13 +39,13 @@ export default function HowItWorks() {
           transition={{ duration: 0.4 }}
           className="mx-auto max-w-2xl text-center space-y-3"
         >
-          <span className="rounded-full border border-[#d4ff32]/30 bg-[#d4ff32]/10 px-3.5 py-1 text-xs font-semibold uppercase tracking-wider text-[#d4ff32]">
+          <span className="rounded-full border border-[#8b5cf6]/30 bg-[#8b5cf6]/10 px-3.5 py-1 text-xs font-semibold uppercase tracking-wider text-[#a78bfa]">
             AUTONOMOUS WORKFLOW
           </span>
 
           <h2 className="text-3xl font-extrabold text-white sm:text-4xl tracking-tight">
             From Consumer Problem to <br />
-            <span className="text-[#d4ff32]">
+            <span className="text-[#a78bfa]">
               Verified Settlement
             </span>
           </h2>
@@ -62,10 +62,10 @@ export default function HowItWorks() {
             return (
               <div
                 key={step.number}
-                className="relative rounded-3xl border border-white/10 bg-[#0d0d12] p-6 sm:p-7 space-y-4"
+                className="relative rounded-3xl border border-white/10 bg-[#0d1017] p-6 sm:p-7 space-y-4"
               >
                 <div className="flex items-center justify-between">
-                  <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[#121216] text-[#d4ff32] border border-white/10">
+                  <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-white/5 text-[#a78bfa] border border-white/10">
                     <Icon size={20} />
                   </div>
 

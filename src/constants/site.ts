@@ -1,11 +1,21 @@
 export const SUPPORT_EMAIL = "krunalc806@gmail.com";
 
+export function getSiteUrl(): string {
+  if (process.env.NEXT_PUBLIC_SITE_URL) {
+    return process.env.NEXT_PUBLIC_SITE_URL.replace(/\/$/, "");
+  }
+  if (process.env.VERCEL_URL) {
+    return `https://${process.env.VERCEL_URL.replace(/\/$/, "")}`;
+  }
+  return "https://outreach-ai.vercel.app";
+}
+
 export const SITE = {
   name: "OutreachAI",
-  tagline: "Autonomous AI Agent for Consumer Resolution",
+  tagline: "Autonomous AI Agent for Consumer Dispute Resolution",
   description:
     "OutreachAI investigates disputes, coordinates across logistics & payment rails, and autonomously secures verified resolutions for Indian consumers.",
-  url: "https://outreachai.ai",
+  url: getSiteUrl(),
   email: SUPPORT_EMAIL,
   supportEmail: SUPPORT_EMAIL,
   logo: "/logo.svg",
@@ -13,12 +23,12 @@ export const SITE = {
 
 export const NAV_LINKS = [
   {
-    label: "How It Works",
-    href: "#how-it-works",
+    label: "Features",
+    href: "/features",
   },
   {
-    label: "Rails & Infrastructure",
-    href: "#features",
+    label: "Use Cases",
+    href: "/use-cases",
   },
   {
     label: "3-Min Demo",
@@ -29,8 +39,12 @@ export const NAV_LINKS = [
     href: "/evidence",
   },
   {
-    label: "FAQ",
-    href: "#faq",
+    label: "Guides",
+    href: "/blog",
+  },
+  {
+    label: "Contact",
+    href: "/contact",
   },
 ];
 

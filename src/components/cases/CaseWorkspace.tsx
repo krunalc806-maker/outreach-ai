@@ -344,7 +344,7 @@ export default function CaseWorkspace() {
                     Problem Resolved
                   </div>
                   <p className="text-xs text-zinc-300">
-                    Recovered: <span className="font-bold text-white">₹{activeCase.resolution.moneyRecovered?.toLocaleString("en-IN") || "3,499"}</span>
+                    Recovered: <span className="font-bold text-white">₹{activeCase.resolution.moneyRecovered?.toLocaleString("en-IN") || (activeCase.extractedEntities.amount ? activeCase.extractedEntities.amount.toLocaleString("en-IN") : "0")}</span>
                   </p>
                   <p className="text-xs text-zinc-300">
                     Consumer Time Saved: <span className="font-bold text-white">{activeCase.resolution.timeSavedMinutes} mins</span>
@@ -354,22 +354,37 @@ export default function CaseWorkspace() {
             </div>
 
             {/* Extracted Context Entities Bar */}
-            <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-4 border-t border-white/10 pt-4">
+            <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-5 border-t border-white/10 pt-4">
               <div className="rounded-xl bg-[#11141c] p-3 border border-white/5">
-                <span className="text-[11px] text-zinc-500 block">Merchant / Target</span>
-                <span className="font-semibold text-white text-xs sm:text-sm">{activeCase.extractedEntities.merchant || "Zara India"}</span>
+                <span className="text-[11px] text-zinc-500 block">Customer</span>
+                <span className="font-semibold text-white text-xs sm:text-sm truncate block">
+                  {activeCase.extractedEntities.customerName || "Not Specified"}
+                </span>
               </div>
               <div className="rounded-xl bg-[#11141c] p-3 border border-white/5">
-                <span className="text-[11px] text-zinc-500 block">Waybill / AWB</span>
-                <span className="font-semibold text-zinc-200 text-xs sm:text-sm font-mono">{activeCase.extractedEntities.awbNumber || "DEL-984210-IN"}</span>
+                <span className="text-[11px] text-zinc-500 block">Merchant / Target</span>
+                <span className="font-semibold text-white text-xs sm:text-sm truncate block">
+                  {activeCase.extractedEntities.merchant || "Unknown / Not Provided"}
+                </span>
+              </div>
+              <div className="rounded-xl bg-[#11141c] p-3 border border-white/5">
+                <span className="text-[11px] text-zinc-500 block">Order / AWB ID</span>
+                <span className="font-semibold text-zinc-200 text-xs sm:text-sm font-mono truncate block">
+                  {activeCase.extractedEntities.orderId || activeCase.extractedEntities.awbNumber || "N/A"}
+                </span>
               </div>
               <div className="rounded-xl bg-[#11141c] p-3 border border-white/5">
                 <span className="text-[11px] text-zinc-500 block">Disputed Amount</span>
-                <span className="font-semibold text-[#a78bfa] text-xs sm:text-sm">₹{(activeCase.extractedEntities.amount || 3499).toLocaleString("en-IN")}</span>
+                <span className="font-semibold text-[#a78bfa] text-xs sm:text-sm truncate block">
+                  {activeCase.extractedEntities.amount ? `₹${activeCase.extractedEntities.amount.toLocaleString("en-IN")}` : "Unspecified"}
+                </span>
               </div>
-              <div className="rounded-xl bg-[#11141c] p-3 border border-white/5">
-                <span className="text-[11px] text-zinc-500 block">Category</span>
-                <span className="font-semibold text-zinc-300 text-xs sm:text-sm">{activeCase.extractedEntities.issueCategory || "DELIVERY_NDR"}</span>
+              <div className="rounded-xl bg-[#11141c] p-3 border border-white/5 col-span-2 sm:col-span-1">
+                <span className="text-[11px] text-zinc-500 block">Category & Duration</span>
+                <span className="font-semibold text-zinc-300 text-xs sm:text-sm truncate block">
+                  {activeCase.extractedEntities.issueCategory?.replace(/_/g, " ") || "REFUND DELAY"}
+                  {activeCase.extractedEntities.pendingDuration ? ` (${activeCase.extractedEntities.pendingDuration})` : ""}
+                </span>
               </div>
             </div>
           </div>

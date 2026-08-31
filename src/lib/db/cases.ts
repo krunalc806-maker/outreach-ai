@@ -12,6 +12,22 @@ function toValidUuid(id?: string | null): string | null {
   return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-4${hex.slice(13, 16)}-a${hex.slice(17, 20)}-${hex.slice(20, 32)}`;
 }
 
+function extractCustomerFromText(text?: string): string | undefined {
+  if (!text) return undefined;
+  const match = text.match(/(?:Customer(?:\s*Name)?|User(?:\s*Name)?)\s*[:=]?\s*([A-Za-z0-9\s._-]+?)(?:\.|$|,|;|\n|Order|Amount|Refund|pending)/i);
+  if (match) return match[1].trim();
+  const titleMatch = text.match(/^([A-Za-z0-9\s._-]+?)\s*—/);
+  return titleMatch ? titleMatch[1].trim() : undefined;
+}
+
+function extractDurationFromText(text?: string): string | undefined {
+  if (!text) return undefined;
+  const match =
+    text.match(/(?:pending(?:\s*for)?|delayed(?:\s*by)?|duration)\s*[:=]?\s*(\d+\s*(?:days?|hours?|weeks?|months?))/i) ||
+    text.match(/(\d+\s*(?:days?|hours?|weeks?|months?))\s*(?:pending|delayed|ago)/i);
+  return match ? match[1].trim() : undefined;
+}
+
 /**
  * Maps a Supabase DB row and its relations into a standard application AgentCase
  */
@@ -78,22 +94,27 @@ function mapRowToAgentCase(
     };
   }
 
+  const rawText = caseRow.raw_input || caseRow.description || "";
+  const summaryText = caseRow.understanding_summary || caseRow.description || "";
+
   return {
     id: caseRow.id,
     createdAt: caseRow.created_at,
     updatedAt: caseRow.updated_at,
     title: caseRow.title,
-    consumerRawInput: caseRow.raw_input || caseRow.description || "",
-    agentUnderstandingSummary: caseRow.understanding_summary || caseRow.description || "",
+    consumerRawInput: rawText,
+    agentUnderstandingSummary: summaryText,
     status: caseRow.status,
     riskLevel: caseRow.risk_level || "LOW",
     extractedEntities: {
-      merchant: caseRow.merchant,
-      orderId: caseRow.order_id,
-      awbNumber: caseRow.awb,
-      transactionId: caseRow.transaction_id,
+      customerName: caseRow.customer_name || extractCustomerFromText(rawText || summaryText || caseRow.title),
+      pendingDuration: caseRow.pending_duration || extractDurationFromText(rawText || summaryText),
+      merchant: caseRow.merchant || undefined,
+      orderId: caseRow.order_id || undefined,
+      awbNumber: caseRow.awb || undefined,
+      transactionId: caseRow.transaction_id || undefined,
       amount: Number(caseRow.claim_amount) || 0,
-      issueCategory: caseRow.category || "DELIVERY_NDR",
+      issueCategory: caseRow.category || "REFUND_DELAY",
     },
     missingFields: [],
     planSteps,
@@ -277,8 +298,8 @@ export async function saveDbCase(agentCase: AgentCase, userId?: string): Promise
       id: agentCase.id,
       user_id: uuid,
       title: agentCase.title,
-      category: agentCase.extractedEntities.issueCategory || "DELIVERY_NDR",
-      merchant: agentCase.extractedEntities.merchant || "",
+      category: agentCase.extractedEntities.issueCategory || "REFUND_DELAY",
+      merchant: agentCase.extractedEntities.merchant || null,
       order_id: agentCase.extractedEntities.orderId || null,
       awb: agentCase.extractedEntities.awbNumber || null,
       transaction_id: agentCase.extractedEntities.transactionId || null,
@@ -382,22 +403,15 @@ export async function saveDbCase(agentCase: AgentCase, userId?: string): Promise
       } catch {}
     }
 
-    // Also update in-memory cache
-    const existingIndex = inMemoryUserCases.findIndex((c) => c.id === agentCase.id);
-    if (existingIndex >= 0) {
-      inMemoryUserCases[existingIndex] = agentCase;
-    } else {
-      inMemoryUserCases = [agentCase, ...inMemoryUserCases];
-    }
-
+    inMemoryUserCases = [agentCase, ...inMemoryUserCases.filter((c) => c.id !== agentCase.id)];
     return { success: true };
   } catch (err: any) {
-    return { success: false, error: err?.message || "Failed to save case in Supabase." };
+    return { success: false, error: err?.message || "Failed to persist case." };
   }
 }
 
 /**
- * Delete a case and cascade dependent rows from Supabase
+ * Delete a case and its related events from database
  */
 export async function deleteDbCase(caseId: string, userId?: string): Promise<{ success: boolean; error?: string }> {
   try {
@@ -407,13 +421,6 @@ export async function deleteDbCase(caseId: string, userId?: string): Promise<{ s
     if (!rawUserId) {
       const { data: { user } } = await supabase.auth.getUser();
       rawUserId = user?.id;
-    }
-
-    if (!rawUserId) {
-      const activeProfile = await getDbProfile();
-      if (activeProfile && activeProfile.id && activeProfile.id !== "guest-user-evaluator") {
-        rawUserId = activeProfile.id;
-      }
     }
 
     const uuid = toValidUuid(rawUserId);
@@ -427,7 +434,6 @@ export async function deleteDbCase(caseId: string, userId?: string): Promise<{ s
     } catch {}
 
     inMemoryUserCases = inMemoryUserCases.filter((c) => c.id !== caseId);
-
     return { success: true };
   } catch (err: any) {
     return { success: false, error: err?.message || "Failed to delete case." };

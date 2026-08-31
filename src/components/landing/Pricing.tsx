@@ -17,7 +17,7 @@ export default function Pricing() {
           transition={{ duration: 0.4 }}
           className="mx-auto max-w-2xl text-center space-y-3"
         >
-          <span className="rounded-full border border-[#d4ff32]/30 bg-[#d4ff32]/10 px-3.5 py-1 text-xs font-semibold text-[#d4ff32] uppercase tracking-wider">
+          <span className="rounded-full border border-[#8b5cf6]/30 bg-[#8b5cf6]/10 px-3.5 py-1 text-xs font-semibold text-[#a78bfa] uppercase tracking-wider">
             TRANSPARENT ACCESS
           </span>
 
@@ -31,17 +31,17 @@ export default function Pricing() {
         </motion.div>
 
         <div className="mt-14 grid gap-6 lg:grid-cols-3 max-w-5xl mx-auto">
-          {PRICING.map((plan, index) => (
+          {PRICING.map((plan) => (
             <div
               key={plan.id}
               className={`relative rounded-3xl border p-6 sm:p-7 flex flex-col justify-between transition ${
                 plan.highlighted
-                  ? "border-[#d4ff32]/40 bg-[#0f0f14] shadow-2xl shadow-[#d4ff32]/5 ring-1 ring-[#d4ff32]/30"
+                  ? "border-[#8b5cf6]/40 bg-[#0f0f14] shadow-2xl shadow-[#8b5cf6]/10 ring-1 ring-[#8b5cf6]/30"
                   : "border-white/10 bg-[#0c0c10]"
               }`}
             >
               {plan.highlighted && (
-                <div className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-[#d4ff32] px-3 py-0.5 text-[10px] font-extrabold uppercase tracking-wider text-black">
+                <div className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-[#8b5cf6] px-3 py-0.5 text-[10px] font-extrabold uppercase tracking-wider text-white shadow-md shadow-[#8b5cf6]/30">
                   Recommended
                 </div>
               )}
@@ -72,7 +72,7 @@ export default function Pricing() {
                     <div key={feature} className="flex items-center gap-2.5">
                       <Check
                         size={14}
-                        className={plan.highlighted ? "text-[#d4ff32]" : "text-emerald-400"}
+                        className={plan.highlighted ? "text-[#a78bfa]" : "text-emerald-400"}
                       />
                       <span className="text-zinc-300">
                         {feature}
@@ -84,14 +84,14 @@ export default function Pricing() {
 
               <div className="mt-7">
                 <Link
-                  href="/login"
+                  href={plan.id === "enterprise" ? "/contact" : "/login"}
                   className={`inline-flex items-center justify-center w-full rounded-xl px-4 py-2.5 text-xs font-bold transition ${
                     plan.highlighted
-                      ? "bg-[#d4ff32] text-black shadow-lg shadow-[#d4ff32]/20 hover:bg-[#bbf426]"
+                      ? "bg-[#8b5cf6] text-white shadow-lg shadow-[#8b5cf6]/20 hover:bg-[#7c3aed]"
                       : "border border-white/10 bg-white/5 text-white hover:bg-white/10"
                   }`}
                 >
-                  Start with Google
+                  {plan.id === "enterprise" ? "Contact Enterprise Desk" : "Deploy Dispute Agent"}
                 </Link>
               </div>
             </div>
