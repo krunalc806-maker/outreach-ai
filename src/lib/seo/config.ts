@@ -1,11 +1,19 @@
+export const PRODUCTION_SITE_URL = "https://outreach-ai-xi-one.vercel.app";
+
 export function getBaseUrl(): string {
-  if (process.env.NEXT_PUBLIC_SITE_URL) {
-    return process.env.NEXT_PUBLIC_SITE_URL.replace(/\/$/, "");
+  // 1. Explicit production override via environment variable if valid and not a temporary/preview hash URL
+  const customSiteUrl = process.env.NEXT_PUBLIC_SITE_URL || process.env.SITE_URL;
+  if (
+    customSiteUrl &&
+    !customSiteUrl.includes("localhost") &&
+    !customSiteUrl.includes(".projects.vercel.app") &&
+    !customSiteUrl.includes("-git-")
+  ) {
+    return customSiteUrl.replace(/\/$/, "");
   }
-  if (process.env.VERCEL_URL) {
-    return `https://${process.env.VERCEL_URL.replace(/\/$/, "")}`;
-  }
-  return "https://outreach-ai.vercel.app";
+
+  // 2. Always use verified canonical production domain for all sitemaps, robots, metadata, and JSON-LD
+  return PRODUCTION_SITE_URL;
 }
 
 export const SEO_DEFAULTS = {

@@ -1,13 +1,9 @@
+import { getBaseUrl, PRODUCTION_SITE_URL } from "@/lib/seo/config";
+
 export const SUPPORT_EMAIL = "krunalc806@gmail.com";
 
 export function getSiteUrl(): string {
-  if (process.env.NEXT_PUBLIC_SITE_URL) {
-    return process.env.NEXT_PUBLIC_SITE_URL.replace(/\/$/, "");
-  }
-  if (process.env.VERCEL_URL) {
-    return `https://${process.env.VERCEL_URL.replace(/\/$/, "")}`;
-  }
-  return "https://outreach-ai.vercel.app";
+  return getBaseUrl();
 }
 
 export const SITE = {
@@ -15,7 +11,7 @@ export const SITE = {
   tagline: "Autonomous AI Agent for Consumer Dispute Resolution",
   description:
     "OutreachAI investigates disputes, coordinates across logistics & payment rails, and autonomously secures verified resolutions for Indian consumers.",
-  url: getSiteUrl(),
+  url: PRODUCTION_SITE_URL,
   email: SUPPORT_EMAIL,
   supportEmail: SUPPORT_EMAIL,
   logo: "/logo.svg",
