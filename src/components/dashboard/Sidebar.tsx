@@ -96,6 +96,12 @@ const navigationSections = [
         icon: MessageSquare,
       },
       {
+        title: "AI Ecosystem",
+        href: "/ecosystem",
+        icon: Sparkles,
+        badge: "New",
+      },
+      {
         title: "My Profile & Account",
         href: "/profile",
         icon: User,
